@@ -2,11 +2,11 @@ library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
-entity seqeucner is
+entity sequencer is
     Generic (
             N_STEPS     : positive := 4;
             STEP_TIME   : time := 500 ms;
-            REST_TIME   : time := 500 ms;
+            REST_TIME   : time := 500 ms
             );
     Port (
             clk         : in bit;
