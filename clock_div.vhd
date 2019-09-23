@@ -20,7 +20,7 @@ architecture divide of clock_div is
 -- count:           Signal to keep track of current count
 -- clk_period:      Period for on-board clock frequency
 -- clk_out_period:  Period for new clock, given frequency
--- max_count:       Number of cucles in on-board clock to represent one new clock cycle
+-- max_count:       Number of cycles in on-board clock to represent one new clock cycle
 signal count            : std_logic_vector(31 downto 0) := (others => '0');
 constant clk_period     : integer := to_integer(1 / CLK_FREQ);
 constant clk_out_period : integer := to_integer((1 / to_integer(unsigned(freq))));
