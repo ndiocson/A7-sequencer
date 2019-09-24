@@ -14,7 +14,7 @@ entity Sequencer is
             out_freq            : out std_logic_vector(31 downto 0)
             );
     
-    subtype step is integer range 0 to 2*N_STEPS;   -- steps are even, rests are odd
+    subtype step is integer range 0 to 2*N_STEPS - 1;   -- steps are even, rests are odd
 end entity Sequencer;
 
 architecture Behavioral of Sequencer is
