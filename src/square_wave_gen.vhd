@@ -40,7 +40,7 @@ signal new_clk          : std_logic := '0';
 
 begin
 
-    -- Instantiate Clock_Divider with default actual generic values
+    -- Instantiates Clock_Divider with default actual generic values
     new_clock: entity work.Clock_Divider(Behavioral)
                 Generic Map (CLK_FREQ => open, CLK_OUT_FREQ => wave_freq)
                 Port Map(clk => clk, reset => reset, clk_out => new_clk);
