@@ -24,8 +24,8 @@ use IEEE.numeric_std.all;
 
 entity Clock_Divider is
     Generic (
-            CLK_FREQ        : integer := 10000000;      -- on-board clock frequency (10 MHz)
-            CLK_OUT_FREQ    : integer := 1              -- desired clock frequency (1 Hz)
+            CLK_FREQ        : integer := 10000000;      -- on-board clock frequency (default 10 MHz)
+            CLK_OUT_FREQ    : integer := 1              -- desired clock frequency (default 1 Hz)
             );
     Port (
             clk, reset      : in std_logic;
