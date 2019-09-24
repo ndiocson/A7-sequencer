@@ -2,43 +2,48 @@ library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
-entity clock_div is
+entity Clock_Divider is
     Generic (
-            CLK_FREQ    : integer := 100000000; -- 10MHz on-board clock frequency
-            BIT_DEPTH   : integer := 27
+            CLK_FREQ        : integer := 10000000;      -- on-board clock frequency (10 MHz)
+            CLK_OUT_FREQ    : integer := 1              -- desired clock frequency (1 Hz)
             );
     Port (
-            clk         : in bit;
-            reset       : in std_logic;
-            freq        : std_logic_vector(2 downto 0);
-            clk_out     : out bit
-         );
-end entity clock_div;
+            clk, reset      : in std_logic;
+            clk_out         : out std_logic
+            );
+end Clock_Divider;
 
-architecture divide of clock_div is
+architecture Behavioral of Clock_Divider is
 
--- count:           Signal to keep track of current count
--- clk_period:      Period for on-board clock frequency
--- clk_out_period:  Period for new clock, given frequency
--- max_count:       Number of cycles in on-board clock to represent one new clock cycle
-signal count            : std_logic_vector(31 downto 0) := (others => '0');
-constant clk_period     : integer := to_integer(1 / CLK_FREQ);
-constant clk_out_period : integer := to_integer((1 / to_integer(unsigned(freq))));
-constant max_count      : std_logic_vector(31 downto 0) := std_logic_vector(unsigned(to_integer(clk_out_period / clk_period)));
+-- clk_period:              Period for on-board clock frequency
+-- clk_out_period:          Period for new clock, given frequency
+-- max_count:               Number of cycles in on-board clock to represent one new clock cycle
+constant clk_period         : real := Real(1 / CLK_FREQ);
+constant clk_out_period     : real := Real(1 / CLK_OUT_FREQ);
+constant max_count          : integer := integer(clk_out_period / clk_period);
+
+-- count:                   Internal integer signal to keep track of current count
+-- new_clk:                 Internal std_logic signal used to drive clk_out
+signal count                : integer := 0;
+signal new_clk              : std_logic := '0';
 
 begin
     
-    -- Process to count number of cycles from on-board clock
-    -- needed to generate new clock of given frequency
+    -- Drives clk_out output with internal new_clk signal
+    clk_out <= new_clk;
+    
+    -- Process that counts the number of on-board clock cycles needed 
+    -- to generate a new clock of the given input frequency
     count_proc: process(clk) is
+    begin
         if (rising_edge(clk)) then
             if (count >= max_count or reset = '1') then
-                count <= (others => '0');
-                clk_out <= not clk_out;
+                count <= 0;
+                new_clk <= not new_clk;
             else
                 count <= count + 1;
             end if;
         end if;
-    end process count_proc;
-    
-end architecture divide;
+    end process count_proc;    
+
+end Behavioral;
