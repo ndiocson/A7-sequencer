@@ -8,11 +8,11 @@ end entity Clock_Divider_Tb;
 
 architecture Test of Clock_Divider_Tb is
 
-constant CLK_FREQ       : integer := 10000000;
-constant CLK_PERIOD     : integer := 1 / CLK_FREQ;
+constant CLK_FREQ       : integer := 10000000;          -- Simulate 10 MHz on-board clock
+constant CLK_PERIOD     : integer := 1 / CLK_FREQ;      -- TODO: fix type errors
 
-constant CLK_OUT_FREQ   : integer := 1;
-constant CLK_OUT_PERIOD : integer := 1 / CLK_OUT_FREQ;
+constant CLK_OUT_FREQ   : integer := 1;                 -- Desired 1 Hz clock
+constant CLK_OUT_PERIOD : integer := 1 / CLK_OUT_FREQ;  -- TODO: fix type errors
 
 -- Input Signals
 signal clk              : std_logic := '0';
@@ -28,7 +28,7 @@ begin
         Generic Map (CLK_FREQ => CLK_FREQ, CLK_OUT_FREQ => CLK_OUT_FREQ)
         Port Map (clk => clk, reset => reset, clk_out => clk_out);
 
-    -- Drive input clk signal
+    -- Drives input clk signal
     drive_clk: process is
     begin
         clk <= '1';
