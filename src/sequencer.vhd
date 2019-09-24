@@ -84,15 +84,22 @@ begin
     
     -- Concurrently assigns note frequency values to each element in steps array
     -- TODO: apply concurrent assignments to a generic number of step elements 
-    -- TODO: note frequency values to be determine by buttons on fpga; hard-coded to 220 Hz for now
-    note_assign: process(new_clk) is
-    begin
-        if (rising_edge(new_clk)) then
-            steps(0) <= std_logic_vector(to_unsigned(220, steps(0)'length));
-            steps(1) <= std_logic_vector(to_unsigned(220, steps(1)'length));
-            steps(2) <= std_logic_vector(to_unsigned(220, steps(2)'length));
-            steps(3) <= std_logic_vector(to_unsigned(220, steps(3)'length));
-        end if;
-    end process note_assign;
-    
+    -- TODO: note frequency values to be determined by buttons on fpga; hard-coded to 220 Hz for now
+    -- note_assign: process(new_clk) is
+    -- begin
+    --     if (rising_edge(new_clk)) then
+    --         steps(0) <= std_logic_vector(to_unsigned(220, steps(0)'length));
+    --         steps(1) <= std_logic_vector(to_unsigned(220, steps(1)'length));
+    --         steps(2) <= std_logic_vector(to_unsigned(220, steps(2)'length));
+    --         steps(3) <= std_logic_vector(to_unsigned(220, steps(3)'length));
+    --     end if;
+    -- end process note_assign;
+
+    -- Concurrently assigns note frequency values to each element in steps array
+    -- TODO: note frequency values to be determined by buttons on fpga; hard-coded to 220 Hz for now
+    note_assign: for index in steps'length generate
+        steps(index) <= std_logic_vector(to_unsigned(220, steps(index)'length)) 
+                        when rising_edge(new_clk) else (others => '0');
+    end generate note_assign;
+
 end Behavioral;
