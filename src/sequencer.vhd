@@ -35,7 +35,10 @@ entity Sequencer is
             );
     
     subtype step is integer range 0 to 2*N_STEPS - 1;   -- steps are even, rests are odd
+<<<<<<< HEAD
     type step_arr is array (0 to N_STEPS - 1) of std_logic_vector(31 downto 0);
+=======
+>>>>>>> a661f2a2190b7708d1d53e5e1d7dbac196107cfc
 end entity Sequencer;
 
 architecture Behavioral of Sequencer is
