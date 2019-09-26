@@ -63,6 +63,13 @@ begin
         square_wave: entity work.Square_Wave_Gen(Behavioral)
                 Port Map(clk => clk, reset => reset, freq => note_freq(index), out_wave => step_wave(index));
     end generate generate_waves;
+
+    -- Concurrently assigns note frequency values to each element in steps array
+    -- TODO: note frequency values to be determined by buttons on fpga; hard-coded to 220 Hz for now    
+    note_assign: for index in note_freq'range generate
+        note_freq(index) <= std_logic_vector(to_unsigned(220, note_freq(index)'length))
+                        when rising_edge(new_clk) else (others => '0');
+    end generate note_assign;
     
     -- Uses the curr_step signal index to apply square wave of corresponding note frequency driven by Sqaure_Wave_Gen
     output_note: process(curr_step) is
@@ -81,12 +88,5 @@ begin
             end if;
         end if;
     end process step_tracker;
-    
-    -- Concurrently assigns note frequency values to each element in steps array
-    -- TODO: note frequency values to be determined by buttons on fpga; hard-coded to 220 Hz for now    
-    note_assign: for index in note_freq'range generate
-        note_freq(index) <= std_logic_vector(to_unsigned(220, note_freq(index)'length))
-                        when rising_edge(new_clk) else (others => '0');
-    end generate note_assign;
     
 end Behavioral;
