@@ -1,3 +1,23 @@
+----------------------------------------------------------------------------------
+-- Company: N/A
+-- Engineer: Nick Diocson
+-- 
+-- Create Date: 09/25/2019 09:00:38 PM
+-- Design Name: Clock Divider Testbench
+-- Module Name: clock_divider_tb - Behavioral
+-- Project Name: N-Step Sequencer
+-- Target Devices: Arty-A7
+-- Tool Versions: 
+-- Description: 
+-- 
+-- Dependencies: 
+-- 
+-- Revision:
+-- Revision 0.01 - File Created
+-- Additional Comments:
+-- 
+----------------------------------------------------------------------------------
+
 library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
@@ -8,11 +28,11 @@ end entity Clock_Divider_Tb;
 
 architecture Test of Clock_Divider_Tb is
 
-constant CLK_FREQ       : integer := 10000000;          -- Simulate 10 MHz on-board clock
-constant CLK_PERIOD     : integer := 1 / CLK_FREQ;      -- TODO: fix type errors
+constant CLK_FREQ       : positive := 10000000;          -- Simulate 10 MHz on-board clock
+constant CLK_PERIOD     : time := 1 / CLK_FREQ * 1 ns;      -- TODO: fix type errors
 
-constant CLK_OUT_FREQ   : integer := 1;                 -- Desired 1 Hz clock
-constant CLK_OUT_PERIOD : integer := 1 / CLK_OUT_FREQ;  -- TODO: fix type errors
+constant CLK_OUT_FREQ   : positive := 1;                 -- Desired 1 Hz clock
+constant CLK_OUT_PERIOD : time := 1 / CLK_OUT_FREQ * 1 ns;  -- TODO: fix type errors
 
 -- Input Signals
 signal clk              : std_logic := '0';
@@ -41,7 +61,8 @@ begin
     -- TODO: add stimulus
     stimulus: process is
     begin
-        
+        reset <= '0';
+        wait for CLK_PERIOD;
     end process stimulus;
 
 end architecture Test;
