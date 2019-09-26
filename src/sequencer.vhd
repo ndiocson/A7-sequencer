@@ -34,18 +34,21 @@ entity Sequencer is
             out_wave            : out std_logic
             );
     
-    subtype step is integer range 0 to 2*N_STEPS - 1;   -- steps are even, rests are odd
-    type step_arr is array (0 to N_STEPS - 1) of std_logic_vector(31 downto 0);
+    subtype step is integer range 0 to N_STEPS - 1;
+    type step_arr is array (step) of std_logic;
+    type freq_arr is array (step) of std_logic_vector(31 downto 0);
 end entity Sequencer;
 
 architecture Behavioral of Sequencer is
 
 -- new_clk:             Internal std_logic signal used as system clock      
 -- curr_step:           Internal step signal used to track position in sequencer
--- steps:               Internal array of frequencies corresponding to each step          
+-- step_note:           Internal signal array of indicies representing each step wave
+-- note_freq:           Internal signal array of frequencies corresponding to each step          
 signal new_clk          : std_logic;
 signal curr_step        : step := 0;
-signal steps            : step_arr := (others => (others => '0'));
+signal step_wave        : step_arr := (others => '0');
+signal note_freq        : freq_arr := (others => (others => '0'));
 
 begin
     
@@ -58,16 +61,13 @@ begin
     -- TODO: implement a fix for steps of 0 Hz frequency values (should act as rests)
     generate_waves: for index in 0 to N_STEPS - 1 generate
         square_wave: entity work.Square_Wave_Gen(Behavioral)
-                Port Map(clk => clk, reset => reset, freq => steps(index), out_wave => out_wave);
+                Port Map(clk => clk, reset => reset, freq => note_freq(index), out_wave => step_wave(index));
     end generate generate_waves;
     
-    -- Uses the curr_step signal index to apply corresponding note frequency through Sqaure_Wave_Gen
-    output_note: process(new_clk) is
+    -- Uses the curr_step signal index to apply square wave of corresponding note frequency driven by Sqaure_Wave_Gen
+    output_note: process(curr_step) is
     begin
-        if (rising_edge(new_clk)) then
-            -- Based on the current step as an index, output the corresponding note
-            
-        end if;
+        out_wave <= step_wave(curr_step);
     end process output_note;
     
     -- Increments the curr_step index signal every clock cycle
@@ -83,23 +83,10 @@ begin
     end process step_tracker;
     
     -- Concurrently assigns note frequency values to each element in steps array
-    -- TODO: apply concurrent assignments to a generic number of step elements 
-    -- TODO: note frequency values to be determined by buttons on fpga; hard-coded to 220 Hz for now
-    -- note_assign: process(new_clk) is
-    -- begin
-    --     if (rising_edge(new_clk)) then
-    --         steps(0) <= std_logic_vector(to_unsigned(220, steps(0)'length));
-    --         steps(1) <= std_logic_vector(to_unsigned(220, steps(1)'length));
-    --         steps(2) <= std_logic_vector(to_unsigned(220, steps(2)'length));
-    --         steps(3) <= std_logic_vector(to_unsigned(220, steps(3)'length));
-    --     end if;
-    -- end process note_assign;
-
-    -- Concurrently assigns note frequency values to each element in steps array
-    -- TODO: note frequency values to be determined by buttons on fpga; hard-coded to 220 Hz for now
-    note_assign: for index in steps'length generate
-        steps(index) <= std_logic_vector(to_unsigned(220, steps(index)'length)) 
+    -- TODO: note frequency values to be determined by buttons on fpga; hard-coded to 220 Hz for now    
+    note_assign: for index in note_freq'range generate
+        note_freq(index) <= std_logic_vector(to_unsigned(220, note_freq(index)'length))
                         when rising_edge(new_clk) else (others => '0');
     end generate note_assign;
-
+    
 end Behavioral;
