@@ -29,9 +29,9 @@ During the sequence loop, note values can be reassigned to any available step at
 ### UART Communication
 
 A UART will be used to interact with the FPGA on the computer. The main features for this interaction will be:
-    -    Initializing the number of steps in the sequence
-    -    Assigning new frequency values to steps (while sequencer is either ON or OFF)
-    -    Selecting the type of wave form to use (square, sine, sawtooth, etc.)
+* Initializing the number of steps in the sequence
+* Assigning new frequency values to steps (while sequencer is either ON or OFF)
+* Selecting the type of wave form to use (square, sine, sawtooth, etc.)
     
 These features will initially be implemented using the TeraTerm console; however, the entirety of the FPGA interaction will eventually be abstracted into a GUI. 
 
