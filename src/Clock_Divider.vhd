@@ -35,11 +35,7 @@ end Clock_Divider;
 
 architecture Behavioral of Clock_Divider is
 
--- clk_period:              Period for on-board clock frequency
--- clk_out_period:          Period for new clock, given frequency
 -- max_count:               Number of cycles in on-board clock to represent one new clock cycle
---constant clk_period         : real := Real(1 / CLK_FREQ);
---constant clk_out_period     : real := Real(1 / CLK_OUT_FREQ);
 constant max_count          : integer := integer(CLK_FREQ / CLK_OUT_FREQ) / 2;
 
 -- count:                   Internal integer signal to keep track of current count
