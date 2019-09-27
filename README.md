@@ -26,3 +26,17 @@ When the sequence start button is pressed, the loop transitions to the ‘ON’ 
 
 During the sequence loop, note values can be reassigned to any available step at any given time. However, it is noted that the note assigned will not be reflected within the corresponding step until the next sequencer cycle.
 
+### UART Communication
+
+A UART will be used to interact with the FPGA on the computer. The main features for this interaction will be:
+    -    Initializing the number of steps in the sequence
+    -    Assigning new frequency values to steps (while sequencer is either ON or OFF)
+    -    Selecting the type of wave form to use (square, sine, sawtooth, etc.)
+    
+These features will initially be implemented using the TeraTerm console; however, the entirety of the FPGA interaction will eventually be abstracted into a GUI. 
+
+### GUI
+
+The GUI will feature an intuitive interface that allows the user to interact with the FPGA in any of the ways mention above. Additionally, the GUI will be able to initially plot the output wave form of the user’s choosing.
+
+
