@@ -32,15 +32,15 @@ end Square_Wave_Gen;
 
 architecture Behavioral of Square_Wave_Gen is
 
--- wave_freq:           Frequency of desired square wave 
-constant wave_freq      : integer := to_integer(unsigned(freq));
-
 -- new_clk:             Internal std_logic signal used to drive out_wave
 signal new_clk          : std_logic := '0';
 
+-- wave_freq:           
+constant wave_freq      : integer := to_integer(unsigned(freq));
+
 begin
 
-    -- Instantiates Clock_Divider with default actual generic values
+    -- Instantiate Clock_Divider with default actual generic values
     new_clock: entity work.Clock_Divider(Behavioral)
                 Generic Map (CLK_FREQ => open, CLK_OUT_FREQ => wave_freq)
                 Port Map(clk => clk, reset => reset, clk_out => new_clk);
