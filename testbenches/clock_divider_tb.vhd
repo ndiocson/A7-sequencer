@@ -29,10 +29,11 @@ end entity Clock_Divider_Tb;
 architecture Test of Clock_Divider_Tb is
 
 constant CLK_FREQ       : positive := 10000000;          -- Simulate 10 MHz on-board clock
-constant CLK_PERIOD     : time := 1 / CLK_FREQ * 1 ns;      -- TODO: fix type errors
+constant CLK_PERIOD     : time := 1 / CLK_FREQ * 1 sec;
 
-constant CLK_OUT_FREQ   : positive := 1;                 -- Desired 1 Hz clock
-constant CLK_OUT_PERIOD : time := 1 / CLK_OUT_FREQ * 1 ns;  -- TODO: fix type errors
+constant CLK_OUT_FREQ   : positive := 2;                 -- Desired clock
+constant CLK_OUT_PERIOD : time := 1 / CLK_OUT_FREQ * 1 sec;
+
 
 -- Input Signals
 signal clk              : std_logic := '0';
@@ -61,8 +62,11 @@ begin
     -- TODO: add stimulus
     stimulus: process is
     begin
+        wait for 0.75 sec;
+        reset <= '1';
+        wait for 100 ns;
         reset <= '0';
-        wait for CLK_PERIOD;
+        wait;
     end process stimulus;
 
 end architecture Test;
