@@ -4,7 +4,7 @@
 -- 
 -- Create Date: 09/21/2019 09:57:56 AM
 -- Design Name: Clock Divider
--- Module Name: Clock_Divider - Behavioral
+-- Module Name: Clock_Divider - Test
 -- Project Name: N-Step Sequencer
 -- Target Devices: Arty-A7
 -- Tool Versions: 
@@ -24,8 +24,8 @@ use IEEE.numeric_std.all;
 
 entity Clock_Divider is
     Generic (
-            CLK_FREQ        : positive := 10000000;      -- on-board clock frequency (10 MHz)
-            CLK_OUT_FREQ    : positive := 1              -- desired clock frequency (1 Hz)
+            CLK_FREQ        : positive := 1E7;      -- on-board clock frequency (10 MHz)
+            CLK_OUT_FREQ    : positive := 2         -- desired clock frequency (1 Hz)
             );
     Port (
             clk, reset      : in std_logic;
@@ -65,4 +65,4 @@ begin
         end if;
     end process count_proc;  
 
-end Behavioral;
+end architecture Behavioral;

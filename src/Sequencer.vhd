@@ -89,4 +89,4 @@ begin
         end if;
     end process step_tracker;
     
-end Behavioral;
+end architecture Behavioral;
