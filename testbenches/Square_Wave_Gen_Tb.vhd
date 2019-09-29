@@ -2,9 +2,9 @@
 -- Company: N/A
 -- Engineer: Nick Diocson
 -- 
--- Create Date: 09/25/2019 09:00:38 PM
--- Design Name: Clock Divider Testbench
--- Module Name: clock_divider_tb - Behavioral
+-- Create Date: 09/29/2019 08:33:13 AM
+-- Design Name: Square Wave Generator Testbench
+-- Module Name: Square_Wave_Gen_Tb - Test
 -- Project Name: N-Step Sequencer
 -- Target Devices: Arty-A7
 -- Tool Versions: 
@@ -22,10 +22,10 @@ library IEEE;
 use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
-entity Clock_Divider_Tb is
-end entity Clock_Divider_Tb;
+entity Square_Wave_Gen_Tb is
+end Square_Wave_Gen_Tb;
 
-architecture Test of Clock_Divider_Tb is
+architecture Test of Square_Wave_Gen_Tb is
 
 -- Simulatted Clock Period
 constant CLK_PERIOD     : time := 100 ns;
@@ -33,17 +33,17 @@ constant CLK_PERIOD     : time := 100 ns;
 -- Input Signals
 signal clk              : std_logic := '0';
 signal reset            : std_logic := '0';
+signal freq             : std_logic_vector(31 downto 0) := std_logic_vector(to_unsigned(220, 32));
 
 -- Output Signal
-signal clk_out          : std_logic := '0';
+signal out_wave         : std_logic := '0';
 
 begin
-
+    
     -- Instantiates device under test
-    DUT: entity work.Clock_Divider(Behavioral)
-        Generic Map (CLK_FREQ => open, CLK_OUT_FREQ => 220)
-        Port Map (clk => clk, reset => reset, clk_out => clk_out);
-
+    DUT: entity work.Square_Wave_Gen(Behavioral)
+        Port Map (clk => clk, reset => reset, freq => freq, out_wave => out_wave);
+        
     -- Drives input clk signal
     drive_clk: process is
     begin
@@ -52,15 +52,17 @@ begin
         clk <= '0';
         wait for CLK_PERIOD / 2;
     end process drive_clk;
-
+    
     -- Process to sitmulate input signals of DUT
     stimulus: process is
     begin
-        wait for 0.75 sec;
+        wait for 40 ms;
         reset <= '1';
-        wait for 100 ns;
+        wait for 10 ms;
+        freq <= "00000000000000000000000110111000";        
+        wait for 10 ms;
         reset <= '0';
         wait;
     end process stimulus;
-
+    
 end architecture Test;
