@@ -33,7 +33,7 @@ constant CLK_PERIOD     : time := 100 ns;
 -- Input Signals
 signal clk              : std_logic := '0';
 signal reset            : std_logic := '0';
-signal freq             : std_logic_vector(31 downto 0) := std_logic_vector(to_unsigned(220, 32));
+signal freq             : std_logic_vector(31 downto 0) := "00000000000000000000000011011100";
 
 -- Output Signal
 signal out_wave         : std_logic := '0';
