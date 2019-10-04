@@ -31,7 +31,7 @@ architecture Test of Square_Wave_Gen_Tb is
 component Square_Wave_Gen is
     Generic (
             CLK_FREQ        : positive := 1E7;      -- on-board clock frequency (10 MHz)
-            FREQ_WIDTH       : positive := 32       -- width of frequency input
+            FREQ_WIDTH      : positive := 32        -- width of frequency input
             );
     Port ( 
             clk, reset      : in std_logic;
