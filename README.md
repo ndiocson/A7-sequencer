@@ -14,6 +14,8 @@ The functionality of 'Note Assignment' defines the process which assigns a note 
 
 ### Square Wave Generator
 
+![Square_Wave_Gen Simulation for 3 notes (220 Hz, 440 Hz, 880 Hz, separated by 3 rests]("C:\PERSONAL\fpga-sequencer\pictures\Square_Wave_Gen_Simulation_1.JPG")
+
 The Square Wave Generator generates each note to be played by a given step. As each step is assigned with a frequency that represents a note, the Square Wave Generator takes that frequency and passes the corresponding square wave as an output.
 
 ### UART Communication
