@@ -27,13 +27,26 @@ end Square_Wave_Gen_Tb;
 
 architecture Test of Square_Wave_Gen_Tb is
 
+-- Component declaration
+component Square_Wave_Gen is
+    Generic (
+            CLK_FREQ        : positive := 1E7;                  -- on-board clock frequency (10 MHz)
+            FREQ_BITS       : positive := 32
+            );
+    Port ( 
+            clk, reset      : in std_logic;
+            freq            : in std_logic_vector(FREQ_BITS - 1 downto 0);
+            out_wave        : out std_logic
+            );
+end component Square_Wave_Gen;
+
 -- Simulatted Clock Period
 constant CLK_PERIOD     : time := 100 ns;
 
 -- Input Signals
 signal clk              : std_logic := '0';
 signal reset            : std_logic := '0';
-signal freq             : std_logic_vector(31 downto 0) := "00000000000000000000000011011100";
+signal freq             : std_logic_vector(31 downto 0) := std_logic_vector(to_unsigned(220, 32));
 
 -- Output Signal
 signal out_wave         : std_logic := '0';
@@ -56,12 +69,22 @@ begin
     -- Process to sitmulate input signals of DUT
     stimulus: process is
     begin
+        wait for 50 ms;
+        freq <= (others => '1');
         wait for 40 ms;
         reset <= '1';
         wait for 10 ms;
-        freq <= "00000000000000000000000110111000";        
+        freq <= std_logic_vector(to_unsigned(440, 32));
         wait for 10 ms;
         reset <= '0';
+        wait for 40 ms;
+        freq <= (others => '1');
+        wait for 50 ms;       
+        freq <= std_logic_vector(to_unsigned(880, 32));
+        wait for 50 ms;
+        freq <= (others => '1');
+        wait for 50 ms;        
+        freq <= std_logic_vector(to_unsigned(220, 32));
         wait;
     end process stimulus;
     
