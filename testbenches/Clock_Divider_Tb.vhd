@@ -27,6 +27,18 @@ end entity Clock_Divider_Tb;
 
 architecture Test of Clock_Divider_Tb is
 
+-- Clock_Divider Component Declaration
+component Clock_Divider is
+    Generic (
+            CLK_FREQ        : positive := 1E7;      -- on-board clock frequency (10 MHz)
+            CLK_OUT_FREQ    : positive := 2         -- desired clock frequency (default 2 Hz)
+            );
+    Port (
+            clk, reset      : in std_logic;
+            clk_out         : out std_logic
+            );
+end component Clock_Divider;
+
 -- Simulatted Clock Period
 constant CLK_PERIOD     : time := 100 ns;
 

@@ -27,15 +27,15 @@ end Square_Wave_Gen_Tb;
 
 architecture Test of Square_Wave_Gen_Tb is
 
--- Component declaration
+-- Square_Wave_Gen Component Declaration
 component Square_Wave_Gen is
     Generic (
-            CLK_FREQ        : positive := 1E7;                  -- on-board clock frequency (10 MHz)
-            FREQ_BITS       : positive := 32
+            CLK_FREQ        : positive := 1E7;      -- on-board clock frequency (10 MHz)
+            FREQ_WIDTH       : positive := 32       -- width of frequency input
             );
     Port ( 
             clk, reset      : in std_logic;
-            freq            : in std_logic_vector(FREQ_BITS - 1 downto 0);
+            freq            : in std_logic_vector(FREQ_WIDTH - 1 downto 0);
             out_wave        : out std_logic
             );
 end component Square_Wave_Gen;

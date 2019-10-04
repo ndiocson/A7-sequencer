@@ -25,7 +25,7 @@ use IEEE.numeric_std.all;
 entity Clock_Divider is
     Generic (
             CLK_FREQ        : positive := 1E7;      -- on-board clock frequency (10 MHz)
-            CLK_OUT_FREQ    : positive := 2         -- desired clock frequency (1 Hz)
+            CLK_OUT_FREQ    : positive := 2         -- desired clock frequency (default 2 Hz)
             );
     Port (
             clk, reset      : in std_logic;
@@ -35,13 +35,13 @@ end Clock_Divider;
 
 architecture Behavioral of Clock_Divider is
 
--- max_count:               Number of cycles in on-board clock to represent one new clock cycle
-constant max_count          : integer := integer(CLK_FREQ / CLK_OUT_FREQ) / 2;
+-- max_count:       Number of cycles in on-board clock to represent one new clock cycle
+constant max_count  : integer := integer(CLK_FREQ / CLK_OUT_FREQ) / 2;
 
--- count:                   Internal integer signal to keep track of current count
--- new_clk:                 Internal std_logic signal used to drive clk_out
-signal count                : integer := 0;
-signal new_clk              : std_logic := '0';
+-- count:           Internal integer signal to keep track of current count
+-- new_clk:         Internal std_logic signal used to drive clk_out
+signal count        : integer := 0;
+signal new_clk      : std_logic := '0';
 
 begin
     

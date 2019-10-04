@@ -24,12 +24,12 @@ use IEEE.numeric_std.all;
 
 entity Square_Wave_Gen is
     Generic (
-            CLK_FREQ        : positive := 1E7;                  -- on-board clock frequency (10 MHz)
-            FREQ_BITS       : positive := 32
+            CLK_FREQ        : positive := 1E7;      -- on-board clock frequency (10 MHz)
+            FREQ_WIDTH       : positive := 32       -- width of frequency input
             );
     Port ( 
             clk, reset      : in std_logic;
-            freq            : in std_logic_vector(FREQ_BITS - 1 downto 0);
+            freq            : in std_logic_vector(FREQ_WIDTH - 1 downto 0);
             out_wave        : out std_logic
             );
 end Square_Wave_Gen;
@@ -37,7 +37,7 @@ end Square_Wave_Gen;
 architecture Behavioral of Square_Wave_Gen is
 
 -- isValidFreq: Function that returns true if given frequency is greater than 0 Hz
-function isValidFreq(freq : std_logic_vector(FREQ_BITS - 1 downto 0)) return std_logic is
+function isValidFreq(freq : std_logic_vector(FREQ_WIDTH - 1 downto 0)) return std_logic is
 variable is_valid_bit : std_logic := '0';
 begin
     if (to_integer(unsigned(freq)) > 0) then
@@ -47,7 +47,7 @@ begin
 end function isValidFreq;
 
 -- calcPulseCount:  Function that returns integer value of maximum count to acheive one out wave pulse
-function calcPulseCount(freq : std_logic_vector(FREQ_BITS - 1 downto 0)) return integer is
+function calcPulseCount(freq : std_logic_vector(FREQ_WIDTH - 1 downto 0)) return integer is
 begin
     return integer(CLK_FREQ / to_integer(unsigned(freq))) / 2;
 end function calcPulseCount;
@@ -75,7 +75,9 @@ begin
     
     -- Drives valid_freq signal to '1' if freq is greater that 0 Hz, else '0'
     valid_freq <= isValidFreq(freq);
-
+    
+    -- Process that manages the present and next states based on the
+    -- internal valid_freq signal
     state_machine: process(p_state, valid_freq) is
     begin
         case p_state is
@@ -95,6 +97,7 @@ begin
         end case;
     end process state_machine;
     
+    -- Process that handles the memory elements of the FSM
     memory_elem: process(clk, reset) is
     begin
         if (reset = '1') then
