@@ -91,7 +91,7 @@ begin
     end generate generate_waves;
 
     -- Concurrently assigns note frequency values to each element in steps array
-    -- If the no note is assigned, the note is considered as a 'rest'
+    -- If no note is assigned, the note is considered as a 'rest'
     -- TODO: note frequency values to be determined by buttons on fpga; hard-coded to 220 Hz for now    
     note_assign: for index in note_freq'range generate
         note_freq(index) <= std_logic_vector(to_unsigned(220, note_freq(index)'length))
