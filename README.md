@@ -1,9 +1,7 @@
-# Arty-A7 Sequencer
-
-### Project Goal
-The goal of this project will be to create a sequencer implemented on an Arty-A7 FPGA development board. The majority of the program's functionality will be processed on the board using the provided GPIO switches and buttons.
+# Arty A7-35T Sequencer
 
 ### Sequencer Design
+
 A basic overview of a sequencer describes a timeline that loops across a defined number of 'steps' that can either play a note, or rest. Each step can play a range of notes, each corresponding to a sinusoidal wave of differing frequencies. Thus, when the sequencer is running, the notes assigned to each available step will be played in a 'sequence', forming a tune. Each step can be edited during the sequence to a different note to alter the overall melody.
 
 ### Sequencer Loop
@@ -18,14 +16,6 @@ The functionality of 'Note Assignment' defines the process which assigns a note 
 
 The Square Wave Generator generates each note to be played by a given step. As each step is assigned with a frequency that represents a note, the Square Wave Generator takes that frequency and passes the corresponding square wave as an output.
 
-The timings for each step and the space between each step within the Sequencer Loop should be predefined. For now, we will consider both step and step space to be equal at 500ms each. We note that with the implementation of the GUI, the constraints for both step and step space may be changed to the user’s desire.
-
-Bringing the design modules together, we can consider the simple case for a 4-step Sequencer. When the FPGA is initially turned on, the sequencer is set to start at the initial step of the sequencer loop, and the loop is currently in the ‘OFF’ state. Additionally, each of the four steps of the sequencer are initialized to ‘0’ to represent a pause.
-
-When the sequence start button is pressed, the loop transitions to the ‘ON’ state and starts at the initial step of the sequencer. Each step of the sequencer holds a value that represents the frequency of their note, which is passed to the Square Wave Generator. In the case of starting the loop with pre-initialized steps, all of the steps are assigned to pauses. Therefore, the first step passes a ‘0’ frequency square wave to the output speaker device for 500ms. After this time has passed, the loop increments to the first step space which does not generate a wave at all, and also lasts 500ms. Once the step space has passed, the second step of the loop is reached.
-
-During the sequence loop, note values can be reassigned to any available step at any given time. However, it is noted that the note assigned will not be reflected within the corresponding step until the next sequencer cycle.
-
 ### UART Communication
 
 A UART will be used to interact with the FPGA on the computer. The main features for this interaction will be:
@@ -39,4 +29,12 @@ These features will initially be implemented using the TeraTerm console; however
 
 The GUI will feature an intuitive interface that allows the user to interact with the FPGA in any of the ways mention above. Additionally, the GUI will be able to initially plot the output wave form of the user’s choosing.
 
+### Bringing It All Together
 
+The timings for each step and the space between each step within the Sequencer Loop should be predefined. For now, we will consider both step and step space to be equal at 500ms each. We note that with the implementation of the GUI, the constraints for both step and step space may be changed to the user’s desire.
+
+Bringing the design modules together, we can consider the simple case for a 4-step Sequencer. When the FPGA is initially turned on, the sequencer is set to start at the initial step of the sequencer loop, and the loop is currently in the ‘OFF’ state. Additionally, each of the four steps of the sequencer are initialized to ‘0’ to represent a pause.
+
+When the sequence start button is pressed, the loop transitions to the ‘ON’ state and starts at the initial step of the sequencer. Each step of the sequencer holds a value that represents the frequency of their note, which is passed to the Square Wave Generator. In the case of starting the loop with pre-initialized steps, all of the steps are assigned to pauses. Therefore, the first step passes a ‘0’ frequency square wave to the output speaker device for 500ms. After this time has passed, the loop increments to the first step space which does not generate a wave at all, and also lasts 500ms. Once the step space has passed, the second step of the loop is reached.
+
+During the sequence loop, note values can be reassigned to any available step at any given time. However, it is noted that the note assigned will not be reflected within the corresponding step until the next sequencer cycle.
