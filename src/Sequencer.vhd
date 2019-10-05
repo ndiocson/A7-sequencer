@@ -93,9 +93,20 @@ begin
                 Port Map (clk => clk, reset => reset, freq => note_freq(index), out_wave => step_wave(index));
     end generate generate_waves;
 
+<<<<<<< HEAD
     -- Drives intenral note_ready signal with step input port of same size
     note_ready <= step;
 
+=======
+    -- Concurrently assigns note frequency values to each element in steps array
+    -- If no note is assigned, the note is considered as a 'rest'
+    -- TODO: note frequency values to be determined by buttons on fpga; hard-coded to 220 Hz for now    
+    note_assign: for index in note_freq'range generate
+        note_freq(index) <= std_logic_vector(to_unsigned(220, note_freq(index)'length))
+                        when rising_edge(new_clk) else (others => '1');
+    end generate note_assign;
+    
+>>>>>>> 2da87284e9fbe5b6a8b4f19b3c73dc62c6b6256f
     -- Uses the curr_step signal index to apply square wave of corresponding note frequency driven by Sqaure_Wave_Gen
     -- Outputs either a wave or a rest depending on the internal rest_on signal
     output_wave: process(curr_step, rest_on) is
