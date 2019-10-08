@@ -36,7 +36,7 @@ component Sequencer is
             );
     Port (
             clk, reset          : in std_logic;
-            strt, btn           : in std_logic;
+            strt, stop          : in std_logic;
             step                : in std_logic_vector(N_STEPS - 1 downto 0);
             out_wave            : out std_logic
             );
@@ -50,7 +50,7 @@ constant N_STEPS        : positive := 4;
 signal clk              : std_logic := '0';
 signal reset            : std_logic := '0';
 signal strt             : std_logic := '0';
-signal btn              : std_logic := '0';
+signal stop             : std_logic := '0';
 signal step             : std_logic_vector(N_STEPS - 1 downto 0);
 
 -- Output Signal
@@ -61,7 +61,7 @@ begin
     -- Instantiates device under test
     DUT: entity work.Sequencer(Behavioral)
         Generic Map (N_STEPS => N_STEPS, STEP_TIME => open, REST_TIME => open)
-        Port Map (clk => clk, reset => reset, strt => strt, btn => btn, step => step, out_wave => out_wave);
+        Port Map (clk => clk, reset => reset, strt => strt, stop => stop, step => step, out_wave => out_wave);
     
     -- Drives input clk signal
     drive_clk: process is
@@ -76,6 +76,14 @@ begin
     begin
         step <= "1111";
         wait for 350 ms;
+        strt <= '1';
+        wait for 50 ms;
+        strt <= '0';
+        wait for 700 ms;
+        stop <= '1';
+        wait for 50 ms;
+        stop <= '0';
+        wait for 300 ms;
         strt <= '1';
         wait for 50 ms;
         strt <= '0';
