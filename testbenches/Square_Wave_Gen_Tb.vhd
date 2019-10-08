@@ -55,6 +55,7 @@ begin
     
     -- Instantiates device under test
     DUT: entity work.Square_Wave_Gen(Behavioral)
+        Generic Map (CLK_FREQ => open, FREQ_WIDTH => open)
         Port Map (clk => clk, reset => reset, freq => freq, out_wave => out_wave);
         
     -- Drives input clk signal
@@ -72,11 +73,11 @@ begin
         wait for 50 ms;
         freq <= (others => '1');
         wait for 40 ms;
-        reset <= '1';
+--        reset <= '1';
         wait for 10 ms;
         freq <= std_logic_vector(to_unsigned(440, 32));
         wait for 10 ms;
-        reset <= '0';
+--        reset <= '0';
         wait for 40 ms;
         freq <= (others => '1');
         wait for 50 ms;       
