@@ -35,36 +35,12 @@ component Sequencer is
             REST_TIME           : time := 500 ms
             );
     Port (
-            clk, reset, pause   : in std_logic;
+            clk, reset          : in std_logic;
+            strt, btn           : in std_logic;
             step                : in std_logic_vector(N_STEPS - 1 downto 0);
             out_wave            : out std_logic
             );
 end component Sequencer;
-
----- Clock_Divider Component Declaration
---component Clock_Divider is
---    Generic (
---            CLK_FREQ        : positive := 1E7;      -- on-board clock frequency (10 MHz)
---            CLK_OUT_FREQ    : positive := 2         -- desired clock frequency (default 2 Hz)
---            );
---    Port (
---            clk, reset      : in std_logic;
---            clk_out         : out std_logic
---            );
---end component Clock_Divider;
-
----- Square_Wave_Gen Component Declaration
---component Square_Wave_Gen is
---    Generic (
---            CLK_FREQ        : positive := 1E7;      -- on-board clock frequency (10 MHz)
---            FREQ_BITS       : positive := 32
---            );
---    Port ( 
---            clk, reset      : in std_logic;
---            freq            : in std_logic_vector(FREQ_BITS - 1 downto 0);
---            out_wave        : out std_logic
---            );
---end component Square_Wave_Gen;
 
 -- Simulatted Clock Period
 constant CLK_PERIOD     : time := 100 ns;
@@ -73,7 +49,8 @@ constant N_STEPS        : positive := 4;
 -- Input Signals
 signal clk              : std_logic := '0';
 signal reset            : std_logic := '0';
-signal pause            : std_logic := '0';
+signal strt             : std_logic := '0';
+signal btn              : std_logic := '0';
 signal step             : std_logic_vector(N_STEPS - 1 downto 0);
 
 -- Output Signal
@@ -84,7 +61,7 @@ begin
     -- Instantiates device under test
     DUT: entity work.Sequencer(Behavioral)
         Generic Map (N_STEPS => N_STEPS, STEP_TIME => open, REST_TIME => open)
-        Port Map (clk => clk, reset => reset, pause => pause, step => step, out_wave => out_wave);
+        Port Map (clk => clk, reset => reset, strt => strt, btn => btn, step => step, out_wave => out_wave);
     
     -- Drives input clk signal
     drive_clk: process is
@@ -98,6 +75,10 @@ begin
     stimulus: process is
     begin
         step <= "1111";
+        wait for 350 ms;
+        strt <= '1';
+        wait for 50 ms;
+        strt <= '0';
         wait;
     end process stimulus;
     
