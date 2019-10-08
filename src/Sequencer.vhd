@@ -30,7 +30,7 @@ entity Sequencer is
             );
     Port (
             clk, reset          : in std_logic;
-            strt, btn           : in std_logic;
+            strt, stop          : in std_logic;
             step                : in std_logic_vector(N_STEPS - 1 downto 0);
             out_wave            : out std_logic
             );
@@ -83,7 +83,6 @@ constant CLK_FREQ   : positive := 1E7;
 -- note_freq:       Internal signal array of frequencies corresponding to each step
 -- note_ready:      Internal signal used to check if a given note is can be assigned a frequency value
 -- rest_on:         Internal signal used to manage rest and step sequencer
--- toggle_btn:      Internal signal used to toggle when btn is '1'
 -- reset_clk:       Internal signal used to reset Clock_Divider instance
 signal new_clk      : std_logic;
 signal curr_step    : step_type;
@@ -91,7 +90,6 @@ signal step_wave    : step_arr := (others => '0');
 signal note_freq    : freq_arr := (others => (others => '1'));
 signal note_ready   : std_logic_vector(N_STEPS downto 1) := (others => '1');
 signal rest_on      : std_logic := '1';
-signal toggle_btn   : std_logic := '0';
 signal reset_clk    : std_logic := '1';
 
 begin
@@ -110,19 +108,9 @@ begin
 
     -- Drives internal note_ready signal with step input port of same size
     note_ready <= step;
-    
-    -- Toggles the internal toggle signal everytime btn is pressed
---    toggle_btn_proc: process(clk, btn) is
---    begin
---        if (rising_edge(clk)) then
---            if (rising_edge(btn)) then
---                toggle_btn <= not toggle_btn;
---            end if;
---        end if;
---    end process toggle_btn_proc;
         
     -- Process that manages the present and next states based on internal toggle signal
-    state_machine: process(p_state, toggle_btn, strt) is
+    state_machine: process(p_state, strt, stop) is
     begin
         case p_state is
             when idle =>
@@ -133,17 +121,17 @@ begin
                 end if;
             when play =>
                 reset_clk <= '0';
-                if (toggle_btn = '1') then
+                if (stop = '1') then
                     n_state <= pause;
                 else
                     n_state <= play;
                 end if;
---            when pause =>
---                if (toggle_btn = '1') then
---                    n_state <= play;
---                else
---                    n_state <= pause;
---                end if;
+            when pause =>
+                if (strt = '1') then
+                    n_state <= play;
+                else
+                    n_state <= pause;
+                end if;
         end case;
     end process state_machine;
     
@@ -159,14 +147,12 @@ begin
 
     -- Uses the curr_step signal index to apply square wave of corresponding note frequency driven by Sqaure_Wave_Gen
     -- Outputs either a wave or a rest depending on the internal rest_on signal
-    output_wave: process(new_clk) is
+    output_wave: process(step_wave) is
     begin
-        if (rising_edge(new_clk)) then
-            if (rest_on = '1') then
-                out_wave <= '0';
-            else
-                out_wave <= step_wave(curr_step);
-            end if;
+        if (p_state /= play or rest_on = '1') then
+            out_wave <= '0';
+        else
+            out_wave <= step_wave(curr_step);
         end if;
     end process output_wave;
 
