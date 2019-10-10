@@ -79,9 +79,9 @@ begin
         strt <= '1';
         wait for 50 ms;
         strt <= '0';
-        wait for 700 ms;
+        wait for 400 ms;
         stop <= '1';
-        wait for 50 ms;
+        wait for 20 ms;
         stop <= '0';
         wait for 300 ms;
         strt <= '1';
