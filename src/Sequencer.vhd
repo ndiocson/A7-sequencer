@@ -149,7 +149,7 @@ begin
     end process memory_elem;
 
     -- Uses the curr_step signal index to apply square wave of corresponding note frequency driven by Sqaure_Wave_Gen
-    -- Outputs either a wave or a rest depending on the internal play_on signal
+    -- Outputs either a wave or a rest depending on the internal rest_on signal
     output_wave: process(step_wave) is
     begin
         if (p_state /= play or rest_on = '1') then
