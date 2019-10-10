@@ -67,39 +67,41 @@ component Square_Wave_Gen is
             );
 end component Square_Wave_Gen;
 
--- state:       Enumerated type to define two states of simple FSM
+-- state:           Enumerated type to define two states of simple FSM
 type state is (idle, play, pause);
 
--- p_state:     Internal state signal to represent present state
--- n_state:     Internal state signal to reppresent next state
+-- p_state:         Internal state signal to represent present state
+-- n_state:         Internal state signal to reppresent next state
 signal p_state, n_state : state := idle;
 
 -- CLK_FREQ:        Constant frequency of on-board clock (10 MHz for Arty A7-35T)
 constant CLK_FREQ   : positive := 1E7;
 
 -- new_clk:         Internal std_logic signal used as system clock      
--- curr_step:       Internal step signal used to track position in sequencer
+-- reset_clk:       Internal signal used to reset all Clock_Divider instances
+signal new_clk      : std_logic;
+signal reset_clk    : std_logic := '1';
+
 -- step_note:       Internal signal array of indicies representing each step wave
 -- note_freq:       Internal signal array of frequencies corresponding to each step
--- note_ready:      Internal signal used to check if a given note is can be assigned a frequency value
--- rest_on:         Internal signal used to manage rest and step sequencer
--- reset_clk:       Internal signal used to reset Clock_Divider instance
-signal new_clk      : std_logic;
-signal curr_step    : step_type;
+-- note_ready:      Internal signal array of bits indicating whether or note a note can be assigned to a step
 signal step_wave    : step_arr := (others => '0');
 signal note_freq    : freq_arr := (others => (others => '1'));
 signal note_ready   : std_logic_vector(N_STEPS downto 1) := (others => '1');
+
+-- curr_step:       Internal step signal used to track position in sequencer
+-- rest_on:         Internal signal used to manage rest and step sequencer
+signal curr_step    : step_type;
 signal rest_on      : std_logic := '1';
-signal reset_clk    : std_logic := '1';
 
 begin
     
-    -- Instantiates Clock_Divider with default actual generic values
+    -- Instantiates a Clock_Divider to drive the new_clk signal
     new_clock: entity work.Clock_Divider(Behavioral)
-        Generic Map (CLK_FREQ => CLK_FREQ, CLK_OUT_FREQ => 4)
+        Generic Map (CLK_FREQ => CLK_FREQ, CLK_OUT_FREQ => 8)
         Port Map (clk => clk, reset => reset_clk, clk_out => new_clk);
                 
-    -- Instatiates N_STEPS Square_Wave_Gen models for each step within the sequencer
+    -- Instatiates 'N_STEPS' Square_Wave_Gen models for each step within the sequencer
     generate_waves: for index in 1 to N_STEPS generate
         square_wave: entity work.Square_Wave_Gen(Behavioral)
             Generic Map (CLK_FREQ => CLK_FREQ, FREQ_WIDTH => open)
@@ -127,6 +129,7 @@ begin
                     n_state <= play;
                 end if;
             when pause =>
+                reset_clk <= '1';
                 if (strt = '1') then
                     n_state <= play;
                 else
@@ -146,7 +149,7 @@ begin
     end process memory_elem;
 
     -- Uses the curr_step signal index to apply square wave of corresponding note frequency driven by Sqaure_Wave_Gen
-    -- Outputs either a wave or a rest depending on the internal rest_on signal
+    -- Outputs either a wave or a rest depending on the internal play_on signal
     output_wave: process(step_wave) is
     begin
         if (p_state /= play or rest_on = '1') then
@@ -157,15 +160,15 @@ begin
     end process output_wave;
 
     -- Assigns note frequency values to each element in note_freq array
-    -- If no note is assigned (frequency bit vector set to all 1's), the note is considered as a 'rest'
+    -- If no note is assigned (frequency bit vector set to all 1's), the note is considered as a rest
     -- TODO: note frequency values to be determined by buttons on fpga; hard-coded to 220 Hz for now 
-    note_assign: process(new_clk) is
+    note_assign: process(clk) is
     begin
-        if (rising_edge(new_clk)) then
+        if (rising_edge(clk)) then
             if (p_state /= idle) then
                 for index in 1 to N_STEPS loop
                     if (note_ready(index) = '1') then
-                        note_freq(index) <= std_logic_vector(to_unsigned(220, note_freq(index)'length));
+                        note_freq(index) <= std_logic_vector(to_unsigned(200 + (20 * index), note_freq(index)'length));
                     else
                         note_freq(index) <= (others => '1');
                     end if;
@@ -174,18 +177,28 @@ begin
         end if;
     end process note_assign;
     
-    -- Increments the curr_step index signal every second clock cycle while the Sequencer is in the 'play' state
+    -- Toggles rest_on every clock cycle
+    -- Drives value to '1' when sequencer is paused
+    rest_tracker: process(new_clk, p_state) is
+    begin
+        if (rising_edge(new_clk) and p_state = play) then
+            rest_on <= not rest_on;
+        elsif (reset_clk = '1' and p_state = pause) then
+                rest_on <= '1';
+        end if;
+    end process rest_tracker;
+    
+    -- Increments the curr_step index signal every two clock cycles
+    -- Does not increment while FSM is not in the pause or idle state
+    -- TODO: decrement curr_step when sequencer is paused
     step_tracker: process(new_clk) is
     begin
         if (rising_edge(new_clk)) then
-            if (p_state = play) then
-                rest_on <= not rest_on;
-                if (rest_on = '1') then
-                    if (curr_step = step_type'high) then
-                        curr_step <= 1;
-                    else
-                        curr_step <= curr_step + 1;
-                    end if;
+            if (rest_on = '1') then
+                if (curr_step = step_type'high) then
+                    curr_step <= 1;
+                else
+                    curr_step <= curr_step + 1;
                 end if;
             end if;
         end if;
