@@ -31,13 +31,10 @@ entity Sequencer is
     Port (
             clk, reset          : in std_logic;
             strt, stop          : in std_logic;
-            step                : in std_logic_vector(N_STEPS - 1 downto 0);
+            step_on             : in std_logic_vector(N_STEPS - 1 downto 0);
+            step_out            : out std_logic_vector(N_STEPS - 1 downto 0);
             out_wave            : out std_logic
             );
-    
-    subtype step_type is integer range 0 to N_STEPS;
-    type step_arr is array (1 to N_STEPS) of std_logic;
-    type freq_arr is array (1 to N_STEPS) of std_logic_vector(31 downto 0);
 end entity Sequencer;
 
 architecture Behavioral of Sequencer is
@@ -67,6 +64,13 @@ component Square_Wave_Gen is
             );
 end component Square_Wave_Gen;
 
+-- step_type:
+-- step_arr:
+-- freq_arr:
+subtype step_type is integer range 0 to N_STEPS;
+type step_arr is array (1 to N_STEPS) of std_logic;
+type freq_arr is array (1 to N_STEPS) of std_logic_vector(31 downto 0);
+
 -- state:           Enumerated type to define two states of simple FSM
 type state is (idle, play, pause);
 
@@ -79,20 +83,22 @@ constant CLK_FREQ   : positive := 1E7;
 
 -- new_clk:         Internal std_logic signal used as system clock      
 -- reset_clk:       Internal signal used to reset all Clock_Divider instances
-signal new_clk      : std_logic;
+-- rest_on:         Internal signal used to manage rest and step sequencer
+signal new_clk      : std_logic := '0';
 signal reset_clk    : std_logic := '1';
+signal rest_on      : std_logic := '1';
 
 -- step_note:       Internal signal array of indicies representing each step wave
--- note_freq:       Internal signal array of frequencies corresponding to each step
+-- note_freq:       Internal signal array of frequencies corresponding to each step   
 -- note_ready:      Internal signal array of bits indicating whether or note a note can be assigned to a step
+-- led_out:         
 signal step_wave    : step_arr := (others => '0');
 signal note_freq    : freq_arr := (others => (others => '1'));
-signal note_ready   : std_logic_vector(N_STEPS downto 1) := (others => '1');
+signal note_ready   : std_logic_vector(N_STEPS - 1 downto 0);
+signal led_out      : std_logic_vector(N_STEPS - 1 downto 0) := (others => '0');
 
--- curr_step:       Internal step signal used to track position in sequencer
--- rest_on:         Internal signal used to manage rest and step sequencer
-signal curr_step    : step_type;
-signal rest_on      : std_logic := '1';
+-- curr_step:       Shared variable used to track current position in sequencer
+shared variable curr_step   : step_type := step_type'low;
 
 begin
     
@@ -109,15 +115,20 @@ begin
     end generate generate_waves;
 
     -- Drives internal note_ready signal with step input port of same size
-    note_ready <= step;
+    note_ready <= step_on;
+    
+    -- Drives output port step_out with internal signal array led_out
+    step_out <= led_out;
         
     -- Process that manages the present and next states based on internal toggle signal
     state_machine: process(p_state, strt, stop) is
     begin
         case p_state is
             when idle =>
+                reset_clk <= '1';
                 if (strt = '1') then
                     n_state <= play;
+                    curr_step := step_type'low + 1;
                 else
                     n_state <= idle;
                 end if;
@@ -125,6 +136,7 @@ begin
                 reset_clk <= '0';
                 if (stop = '1') then
                     n_state <= pause;
+                    curr_step := curr_step - 1;
                 else
                     n_state <= play;
                 end if;
@@ -143,6 +155,7 @@ begin
     begin
         if (reset = '1') then
             p_state <= idle;
+            curr_step := step_type'low;
         elsif (rising_edge(clk)) then
             p_state <= n_state;
         end if;
@@ -158,7 +171,18 @@ begin
             out_wave <= step_wave(curr_step);
         end if;
     end process output_wave;
-
+    
+    -- Outputs a '1' the the LED corresponding to the current step
+    -- TODO: fix case of first step index after idle state transition
+    output_led: process(p_state, rest_on) is
+    begin
+        if (p_state = play) then
+            led_out(curr_step - 1) <= not rest_on;
+        else
+            led_out <= (others => '0');
+        end if;
+    end process output_led;
+    
     -- Assigns note frequency values to each element in note_freq array
     -- If no note is assigned (frequency bit vector set to all 1's), the note is considered as a rest
     -- TODO: note frequency values to be determined by buttons on fpga; hard-coded to 220 Hz for now 
@@ -167,8 +191,8 @@ begin
         if (rising_edge(clk)) then
             if (p_state /= idle) then
                 for index in 1 to N_STEPS loop
-                    if (note_ready(index) = '1') then
-                        note_freq(index) <= std_logic_vector(to_unsigned(200 + (20 * index), note_freq(index)'length));
+                    if (note_ready(index - 1) = '1') then
+                        note_freq(index) <= std_logic_vector(to_unsigned(220, note_freq(index)'length));
                     else
                         note_freq(index) <= (others => '1');
                     end if;
@@ -178,30 +202,31 @@ begin
     end process note_assign;
     
     -- Toggles rest_on every clock cycle
-    -- Drives value to '1' when sequencer is paused
-    rest_tracker: process(new_clk, p_state) is
+    -- Drives rest_on to '1' when sequencer is paused
+    toggle_rest: process(new_clk, p_state) is
     begin
         if (rising_edge(new_clk) and p_state = play) then
             rest_on <= not rest_on;
-        elsif (reset_clk = '1' and p_state = pause) then
-                rest_on <= '1';
+        elsif (p_state = pause) then
+            rest_on <= '1';
         end if;
-    end process rest_tracker;
+    end process toggle_rest;
     
     -- Increments the curr_step index signal every two clock cycles
     -- Does not increment while FSM is not in the pause or idle state
-    -- TODO: decrement curr_step when sequencer is paused
-    step_tracker: process(new_clk) is
+    increment_step: process(new_clk) is
     begin
-        if (rising_edge(new_clk)) then
-            if (rest_on = '1') then
-                if (curr_step = step_type'high) then
-                    curr_step <= 1;
-                else
-                    curr_step <= curr_step + 1;
+        if (p_state = play) then
+            if (rising_edge(new_clk)) then
+                if (rest_on = '1') then
+                    if (curr_step = step_type'high) then
+                        curr_step := step_type'low + 1;
+                    else
+                        curr_step := curr_step + 1;
+                    end if;
                 end if;
             end if;
         end if;
-    end process step_tracker;
+    end process increment_step;
     
 end architecture Behavioral;
