@@ -31,7 +31,7 @@ entity Sequencer is
     Port (
             clk, reset          : in std_logic;
             strt, stop          : in std_logic;
-            step_on             : in std_logic_vector(N_STEPS - 1 downto 0);
+            step_ready          : in std_logic_vector(N_STEPS - 1 downto 0);
             step_out            : out std_logic_vector(N_STEPS - 1 downto 0);
             out_wave            : out std_logic
             );
@@ -64,9 +64,12 @@ component Square_Wave_Gen is
             );
 end component Square_Wave_Gen;
 
--- step_type:
--- step_arr:
--- freq_arr:
+-- CLK_FREQ:        Constant frequency of on-board clock (10 MHz for Arty A7-35T)
+constant CLK_FREQ   : positive := 1E7;
+
+-- step_type:       Subtype defining the range of steps including 0
+-- step_arr:        std_loigc array of length N_STPES used to represent the output wave of each step
+-- freq_arr:        std_logic_vector array of length N_STEPS used to represent the frequency of each step
 subtype step_type is integer range 0 to N_STEPS;
 type step_arr is array (1 to N_STEPS) of std_logic;
 type freq_arr is array (1 to N_STEPS) of std_logic_vector(31 downto 0);
@@ -74,12 +77,9 @@ type freq_arr is array (1 to N_STEPS) of std_logic_vector(31 downto 0);
 -- state:           Enumerated type to define two states of simple FSM
 type state is (idle, play, pause);
 
--- p_state:         Internal state signal to represent present state
--- n_state:         Internal state signal to reppresent next state
+-- p_state:         Internal state signal used to represent the present state
+-- n_state:         Internal state signal used to represent the next state
 signal p_state, n_state : state := idle;
-
--- CLK_FREQ:        Constant frequency of on-board clock (10 MHz for Arty A7-35T)
-constant CLK_FREQ   : positive := 1E7;
 
 -- new_clk:         Internal std_logic signal used as system clock      
 -- reset_clk:       Internal signal used to reset all Clock_Divider instances
@@ -88,16 +88,14 @@ signal new_clk      : std_logic := '0';
 signal reset_clk    : std_logic := '1';
 signal rest_on      : std_logic := '1';
 
--- step_note:       Internal signal array of indicies representing each step wave
+-- step_wave:       Internal signal array of indicies representing each step wave
 -- note_freq:       Internal signal array of frequencies corresponding to each step   
--- note_ready:      Internal signal array of bits indicating whether or note a note can be assigned to a step
--- led_out:         
+-- led_out:         Internal bit vector signal used to represent when each step is being played
 signal step_wave    : step_arr := (others => '0');
 signal note_freq    : freq_arr := (others => (others => '1'));
-signal note_ready   : std_logic_vector(N_STEPS - 1 downto 0);
 signal led_out      : std_logic_vector(N_STEPS - 1 downto 0) := (others => '0');
 
--- curr_step:       Shared variable used to track current position in sequencer
+-- curr_step:       Shared variable used to track current step position in sequencer
 shared variable curr_step   : step_type := step_type'low;
 
 begin
@@ -113,9 +111,6 @@ begin
             Generic Map (CLK_FREQ => CLK_FREQ, FREQ_WIDTH => open)
             Port Map (clk => clk, reset => reset, freq => note_freq(index), out_wave => step_wave(index));
     end generate generate_waves;
-
-    -- Drives internal note_ready signal with step input port of same size
-    note_ready <= step_on;
     
     -- Drives output port step_out with internal signal array led_out
     step_out <= led_out;
@@ -191,7 +186,7 @@ begin
         if (rising_edge(clk)) then
             if (p_state /= idle) then
                 for index in 1 to N_STEPS loop
-                    if (note_ready(index - 1) = '1') then
+                    if (step_ready(index - 1) = '1') then
                         note_freq(index) <= std_logic_vector(to_unsigned(220, note_freq(index)'length));
                     else
                         note_freq(index) <= (others => '1');
