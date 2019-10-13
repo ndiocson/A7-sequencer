@@ -4,9 +4,9 @@
 -- 
 -- Create Date: 09/21/2019 09:57:56 AM
 -- Design Name: Clock Divider
--- Module Name: Clock_Divider - Test
+-- Module Name: Clock_Divider - Behavioral
 -- Project Name: N-Step Sequencer
--- Target Devices: Arty-A7
+-- Target Devices: Arty A7-35T
 -- Tool Versions: 
 -- Description: 
 -- 

@@ -6,7 +6,7 @@
 -- Design Name: Square Wave Generator Testbench
 -- Module Name: Square_Wave_Gen_Tb - Test
 -- Project Name: N-Step Sequencer
--- Target Devices: Arty-A7
+-- Target Devices: N-Step Sequencer
 -- Tool Versions: 
 -- Description: 
 -- 

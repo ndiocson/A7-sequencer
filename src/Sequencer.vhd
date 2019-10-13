@@ -6,7 +6,7 @@
 -- Design Name: Sequencer
 -- Module Name: Sequencer - Behavioral
 -- Project Name: N-Step Sequencer
--- Target Devices: Arty-A7
+-- Target Devices: Arty A7-35T
 -- Tool Versions: 
 -- Description: 
 -- 

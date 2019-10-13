@@ -3,10 +3,10 @@
 -- Engineer: Nick Diocson
 -- 
 -- Create Date: 10/05/2019 07:13:15 AM
--- Design Name: Squencer Testbench
+-- Design Name: Sequencer Testbench
 -- Module Name: Sequencer_Tb - Test
--- Project Name: 
--- Target Devices: 
+-- Project Name: N-Step Sequencer
+-- Target Devices: Arty A7-35T
 -- Tool Versions: 
 -- Description: 
 -- 

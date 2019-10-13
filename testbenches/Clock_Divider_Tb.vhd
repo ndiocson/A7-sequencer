@@ -4,9 +4,9 @@
 -- 
 -- Create Date: 09/25/2019 09:00:38 PM
 -- Design Name: Clock Divider Testbench
--- Module Name: clock_divider_tb - Behavioral
+-- Module Name: Clock_Divider_Tb - Test
 -- Project Name: N-Step Sequencer
--- Target Devices: Arty-A7
+-- Target Devices: Arty A7-35T
 -- Tool Versions: 
 -- Description: 
 -- 
