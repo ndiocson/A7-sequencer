@@ -68,9 +68,9 @@ begin
     -- Process to sitmulate input signals of DUT
     stimulus: process is
     begin
-        wait for 0.75 sec;
+        wait for 50 ms;
         reset <= '1';
-        wait for 100 ns;
+        wait for 10 ms;
         reset <= '0';
         wait;
     end process stimulus;

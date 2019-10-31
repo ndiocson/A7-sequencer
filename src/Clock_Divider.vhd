@@ -35,33 +35,43 @@ end Clock_Divider;
 
 architecture Behavioral of Clock_Divider is
 
+-- Counter Component Declaration
+component Counter is
+    Generic (
+            CLK_FREQ        : positive := 1E7;      -- on-board clock frequency (10 MHz)
+            MAX_COUNT       : positive := 520       -- maximum number of cycles to count to
+            );
+    Port ( 
+            clk, reset      : in std_logic;
+            max_reached     : out std_logic
+            );
+end component Counter;
+
 -- max_count:       Number of cycles in on-board clock to represent one new clock cycle
 constant max_count  : integer := integer(CLK_FREQ / CLK_OUT_FREQ) / 2;
 
--- count:           Internal integer signal to keep track of current count
 -- new_clk:         Internal std_logic signal used to drive clk_out
-signal count        : integer := 0;
+-- toggle_clk:      Internal signal used to indicate when to toggle new_clk
 signal new_clk      : std_logic := '0';
+signal toggle_clk   : std_logic := '0';
 
 begin
+    
+    count_inst: Counter
+        Generic Map (CLK_FREQ => CLK_FREQ, MAX_COUNT => max_count)
+        Port Map (clk => clk, reset => reset, max_reached => toggle_clk);
     
     -- Drives clk_out output with internal new_clk signal
     clk_out <= new_clk;
     
     -- Process that counts the number of on-board clock cycles needed 
     -- to generate a new clock of the given input frequency
-    count_proc: process(clk) is
+    count_proc: process(reset, toggle_clk) is
     begin
-        if (rising_edge(clk)) then
-            if (reset = '1') then
-                count <= 0;
-                new_clk <= '0';
-            elsif (count >= max_count) then
-                count <= 0;
-                new_clk <= not new_clk;
-            else
-                count <= count + 1;
-            end if;
+        if (reset = '1') then
+            new_clk <= '0';
+        elsif (toggle_clk = '1') then
+            new_clk <= not new_clk;
         end if;
     end process count_proc;  
 
