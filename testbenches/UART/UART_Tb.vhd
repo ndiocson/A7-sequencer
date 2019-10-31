@@ -115,11 +115,12 @@ begin
         wait for 50 us;
         transmit <= '0';
         
---        wait for 4000 us;
---        tx_bits <= "11111111111111111111111111111111";
---        transmit <= '1';
---        wait for 50 us;
---        transmit <= '0';
+        wait for 1000 us;
+        tx_bits <= "11111111111111111111111111111111";
+        wait for 3000 us;
+        transmit <= '1';
+        wait for 50 us;
+        transmit <= '0';
         wait;
     end process stimulus;
 
