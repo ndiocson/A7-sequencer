@@ -41,10 +41,9 @@ component UART_Rx is
             );
 end component UART_Rx;
 
--- Simulatted Clock Period
+-- CLK_PERIOD:          Simulatted Clock Period
+-- TRAN_BITS:           Number of transmission bits
 constant CLK_PERIOD     : time := 100 ns;
-
--- Number of transmission bits
 constant TRAN_BITS      : integer := 8;
 
 -- Input Signals

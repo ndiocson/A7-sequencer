@@ -73,8 +73,12 @@ signal tx_done      : std_logic := '0';
 
 -- curr_pos:        Internal signal used to track the current data bit to transmit
 -- write_bit:       Internal signal used to indicate when to write a bit to the output_stream
+-- new_write:       Internal signal used to indicate when to latch the data to be transmitted
+-- tx_buffer:       Internal signal buffer to hold the data to be transmitted
 signal curr_pos     : tx_size := 0;
 signal write_bit    : std_logic := '0';
+signal new_write    : std_logic := '1';
+signal tx_buffer    : std_logic_vector(TRAN_BITS - 1 downto 0);
 
 begin
 
@@ -82,6 +86,14 @@ begin
     sample_count: Counter
         Generic Map (CLK_FREQ => CLK_FREQ, MAX_COUNT => BIT_CNT + 1)
         Port Map (clk => clk, reset => reset, max_reached => write_bit);
+
+    -- Process to latch the data to be transmitted if the UART is ready
+    latch_data: process(new_write, tx_bits) is
+    begin
+        if (new_write = '1') then
+            tx_buffer <= tx_bits;
+        end if;
+    end process latch_data;
 
     -- Process that manages the present and next states
     state_machine: process(p_state, tx_init, tx_strt, tx_stop, tx_done) is
@@ -131,6 +143,7 @@ begin
         
             -- Drives the output_stream to '1'
             when idle =>
+                new_write <= '1';
                 tx_strt <= '0';
                 tx_stop <= '0';
                 tx_done <= '0';
@@ -143,6 +156,7 @@ begin
             
             -- Sends the start '0' bit to the output_stream
             when send_start =>
+                new_write <= '0';
                 tx_init <= '0';
                 tx_stop <= '0';
                 tx_done <= '0';
@@ -155,12 +169,13 @@ begin
             
             -- Sequentially sends the data bits to the output_stream
             when send_bits =>
+                new_write <= '0';
                 tx_init <= '0';
                 tx_strt <= '0';
                 tx_done <= '0';
                 if (write_bit = '1') then
                     if (curr_pos <= tx_size'high) then
-                        output_stream <= tx_bits(curr_pos);
+                        output_stream <= tx_buffer(curr_pos);
                         curr_pos <= curr_pos + 1;
                         tx_stop <= '0';
                     else
@@ -171,6 +186,7 @@ begin
             
             -- Sends the stop '1' bit to the output_stream
             when send_stop =>
+                new_write <= '0';
                 tx_init <= '0';
                 tx_strt <= '0';
                 tx_stop <= '0';
