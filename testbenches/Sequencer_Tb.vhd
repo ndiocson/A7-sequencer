@@ -37,23 +37,23 @@ component Sequencer is
     Port (
             clk, reset          : in std_logic;
             strt, stop          : in std_logic;
-            step_ready          : in std_logic_vector(N_STEPS - 1 downto 0);
-            step_out            : out std_logic_vector(N_STEPS - 1 downto 0);
+            step_ready          : in std_logic_vector(N_STEPS downto 1);
+            step_out            : out std_logic_vector(N_STEPS downto 1);
             out_wave            : out std_logic
             );
 end component Sequencer;
 
 -- Simulatted Clock Period
 constant CLK_PERIOD     : time := 100 ns;
-constant N_STEPS        : positive := 4;
+constant N_STEPS        : positive := 8;
 
 -- Input Signals
 signal clk              : std_logic := '0';
 signal reset            : std_logic := '0';
 signal strt             : std_logic := '0';
 signal stop             : std_logic := '0';
-signal step_ready       : std_logic_vector(N_STEPS - 1 downto 0);
-signal step_out         : std_logic_vector(N_STEPS - 1 downto 0);
+signal step_ready       : std_logic_vector(N_STEPS downto 1);
+signal step_out         : std_logic_vector(N_STEPS downto 1);
 
 -- Output Signal
 signal out_wave         : std_logic := '0';
@@ -61,7 +61,7 @@ signal out_wave         : std_logic := '0';
 begin
     
     -- Instantiates device under test
-    DUT: entity work.Sequencer(Behavioral)
+    DUT: Sequencer
         Generic Map (N_STEPS => N_STEPS, STEP_TIME => open, REST_TIME => open)
         Port Map (clk => clk, reset => reset, strt => strt, stop => stop, step_ready => step_ready, step_out => step_out, out_wave => out_wave);
     
@@ -76,12 +76,12 @@ begin
     
     stimulus: process is
     begin
-        step_ready <= "1111";
-        wait for 350 ms;
+        step_ready <= (others => '1');
+        wait for 100 ms;
         strt <= '1';
         wait for 20 ms;
         strt <= '0';
-        wait for 400 ms;
+        wait for 330 ms;
         stop <= '1';
         wait for 20 ms;
         stop <= '0';
