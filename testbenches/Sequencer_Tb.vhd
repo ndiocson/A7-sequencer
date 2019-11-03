@@ -64,7 +64,7 @@ end component UART_Tx;
 -- BAUD_RATE:           9600 bits per second
 -- BIT_CNT:             Number of clock cycles to represent a bit
 -- SAMPLE_CNT           Number of clock cycles to sample a bit
--- FREQ_WIDTH:          
+-- FREQ_WIDTH:          Number of bits to represent note frequencies
 -- N_STEPS:             Number of steps in sequencer
 constant CLK_PERIOD     : time := 100 ns;
 constant BAUD_RATE      : positive := 9600;

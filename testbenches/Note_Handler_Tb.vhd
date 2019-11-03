@@ -56,28 +56,28 @@ component UART_Tx is
             );
 end component UART_Tx;
 
--- CLK_PERIOD:      Simulatted Clock Period
--- BAUD_RATE:       9600 bits per second
--- BIT_CNT:         Number of clock cycles to represent a bit
--- SAMPLE_CNT       Number of clock cycles to sample a bit
--- FREQ_WIDTH:      Number of transmission bits
-constant CLK_PERIOD : time := 100 ns;
-constant BAUD_RATE  : positive := 9600;
-constant BIT_CNT    : positive := 1040;
-constant SAMPLE_CNT : positive := 520;
-constant FREQ_WIDTH : positive := 32;
+-- CLK_PERIOD:          Simulatted Clock Period
+-- BAUD_RATE:           9600 bits per second
+-- BIT_CNT:             Number of clock cycles to represent a bit
+-- SAMPLE_CNT           Number of clock cycles to sample a bit
+-- FREQ_WIDTH:          Number of bits to represent note frequencies
+constant CLK_PERIOD     : time := 100 ns;
+constant BAUD_RATE      : positive := 9600;
+constant BIT_CNT        : positive := 1040;
+constant SAMPLE_CNT     : positive := 520;
+constant FREQ_WIDTH     : positive := 32;
 
--- data_stream:     Signal to be transmitted to and received from by both DUTs
-signal note_stream  : std_logic;
+-- data_stream:         Signal to be transmitted to and received from by both DUTs
+signal note_stream      : std_logic;
 
 -- Input Signals
-signal clk          : std_logic := '0';
-signal reset        : std_logic := '0';
-signal transmit     : std_logic := '0';
-signal tx_bits      : std_logic_vector(FREQ_WIDTH - 1 downto 0);
+signal clk              : std_logic := '0';
+signal reset            : std_logic := '0';
+signal transmit         : std_logic := '0';
+signal tx_bits          : std_logic_vector(FREQ_WIDTH - 1 downto 0);
 
 -- Output Signal
-signal note_freq    : std_logic_vector(FREQ_WIDTH - 1 downto 0);
+signal note_freq        : std_logic_vector(FREQ_WIDTH - 1 downto 0);
 
 begin
     
