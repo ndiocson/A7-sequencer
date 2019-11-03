@@ -69,15 +69,15 @@ signal rx_strt      : std_logic := '0';
 signal rx_stop      : std_logic := '0';
 signal rx_done      : std_logic := '0';
 
+-- bit_pos:         Internal signal used to track current positon of the transmission bit to sample
 -- full_bit:        Internal signal used to indicate when a new bit is to be read from the input_stream
 -- sample_bit:      Internal signal used to indicate when the current bit is to be sampled from the input_stream
 -- out_bits:        Internal signal used to hold the transmission bits while they are read
--- bit_pos:         Internal signal used to track current positon of the transmission bit to sample
+signal bit_pos      : integer := 0;
 signal full_bit     : std_logic := '0';
 signal sample_bit   : std_logic := '0';
 signal write_bits   : std_logic := '0';
 signal out_bits     : std_logic_vector(TRAN_BITS - 1 downto 0) := (others => '0');
-signal bit_pos      : integer := 0;
 
 begin
     

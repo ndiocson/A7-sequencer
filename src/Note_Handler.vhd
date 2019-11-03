@@ -27,12 +27,12 @@ entity Note_Handler is
             BAUD_RATE       : positive := 9600;
             BIT_CNT         : positive := 1040;
             SAMPLE_CNT      : positive := 520;
-            TRAN_BITS       : positive := 32
+            FREQ_WIDTH      : positive := 32
             );
     Port (
             clk, reset      : in std_logic;
-            data_stream     : in std_logic;
-            note_value      : out std_logic_vector(TRAN_BITS - 1 downto 0)
+            note_stream     : in std_logic;
+            note_freq       : out std_logic_vector(FREQ_WIDTH - 1 downto 0)
             );
 end entity Note_Handler;
 
@@ -54,22 +54,22 @@ component UART_Rx is
 end component UART_Rx;
            
 -- rx_bits:     Internal signal vector to hold received bits from data_stream
-signal rx_bits  : std_logic_vector(TRAN_BITS - 1 downto 0);
+signal rx_bits  : std_logic_vector(FREQ_WIDTH - 1 downto 0);
 
 begin
     
     -- Instantiates a UART Receiver to collect the bits representing the note frequency value
     receiver: UART_Rx
-        Generic Map(BAUD_RATE => BAUD_RATE, BIT_CNT => BIT_CNT, SAMPLE_CNT => SAMPLE_CNT, TRAN_BITS => TRAN_BITS)
-        Port Map (clk => clk, reset => reset, input_stream => data_stream, rx_bits => rx_bits);
+        Generic Map(BAUD_RATE => BAUD_RATE, BIT_CNT => BIT_CNT, SAMPLE_CNT => SAMPLE_CNT, TRAN_BITS => FREQ_WIDTH)
+        Port Map (clk => clk, reset => reset, input_stream => note_stream, rx_bits => rx_bits);
 
     -- Process to output received note frequency value
     latch_freq: process(rx_bits) is
     begin
-        if (rx_bits = std_logic_vector(to_unsigned(0, TRAN_BITS))) then
-            note_value <= (others => '1');
+        if (rx_bits = std_logic_vector(to_unsigned(0, FREQ_WIDTH))) then
+            note_freq <= (others => '1');
         else
-            note_value <= rx_bits;
+            note_freq <= rx_bits;
         end if;
     end process latch_freq;
     

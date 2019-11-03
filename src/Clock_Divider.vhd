@@ -47,8 +47,8 @@ component Counter is
             );
 end component Counter;
 
--- max_count:       Number of cycles in on-board clock to represent one new clock cycle
-constant max_count  : integer := integer(CLK_FREQ / CLK_OUT_FREQ) / 2;
+-- MAX_COUNT:       Number of cycles in on-board clock to represent one new clock cycle
+constant MAX_COUNT  : integer := integer(CLK_FREQ / CLK_OUT_FREQ) / 2;
 
 -- new_clk:         Internal std_logic signal used to drive clk_out
 -- toggle_clk:      Internal signal used to indicate when to toggle new_clk
@@ -58,7 +58,7 @@ signal toggle_clk   : std_logic := '0';
 begin
     
     count_inst: Counter
-        Generic Map (CLK_FREQ => CLK_FREQ, MAX_COUNT => max_count)
+        Generic Map (CLK_FREQ => CLK_FREQ, MAX_COUNT => MAX_COUNT)
         Port Map (clk => clk, reset => reset, max_reached => toggle_clk);
     
     -- Drives clk_out output with internal new_clk signal

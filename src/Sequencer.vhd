@@ -25,6 +25,7 @@ use IEEE.numeric_std.all;
 entity Sequencer is
     Generic (
             N_STEPS             : positive := 4;
+            FREQ_WIDTH          : positive := 32;
             STEP_TIME           : time := 500 ms;
             REST_TIME           : time := 500 ms
             );
@@ -32,6 +33,7 @@ entity Sequencer is
             clk, reset          : in std_logic;
             strt, stop          : in std_logic;
             step_ready          : in std_logic_vector(N_STEPS downto 1);
+            note_stream         : in std_logic_vector(N_STEPS downto 1);
             step_out            : out std_logic_vector(N_STEPS downto 1);
             out_wave            : out std_logic
             );
@@ -42,8 +44,8 @@ architecture Behavioral of Sequencer is
 -- Clock_Divider Component Declaration
 component Clock_Divider is
     Generic (
-            CLK_FREQ        : positive := 1E7;      -- on-board clock frequency (10 MHz)
-            CLK_OUT_FREQ    : positive := 2         -- desired clock frequency (default 2 Hz)
+            CLK_FREQ        : positive := 1E7;
+            CLK_OUT_FREQ    : positive := 2
             );
     Port (
             clk, reset      : in std_logic;
@@ -51,11 +53,26 @@ component Clock_Divider is
             );
 end component Clock_Divider;
 
+-- Note_Handler Component Declaration
+component Note_Handler is
+    Generic (
+            BAUD_RATE       : positive := 9600;
+            BIT_CNT         : positive := 1040;
+            SAMPLE_CNT      : positive := 520;
+            FREQ_WIDTH      : positive := 32
+            );
+    Port (
+            clk, reset      : in std_logic;
+            note_stream     : in std_logic;
+            note_freq       : out std_logic_vector(FREQ_WIDTH - 1 downto 0)
+            );
+end component Note_Handler;
+
 -- Square_Wave_Gen Component Declaration
 component Square_Wave_Gen is
     Generic (
-            CLK_FREQ        : positive := 1E7;      -- on-board clock frequency (10 MHz)
-            FREQ_WIDTH      : positive := 32        -- width of frequency input
+            CLK_FREQ        : positive := 1E7;
+            FREQ_WIDTH      : positive := 32
             );
     Port ( 
             clk, reset      : in std_logic;
@@ -65,9 +82,13 @@ component Square_Wave_Gen is
 end component Square_Wave_Gen;
 
 -- CLK_FREQ:        Constant frequency of on-board clock (10 MHz for Arty A7-35T)
--- FREQ_WDITH:      Constant width of bits needed to represent note frequency values
+-- BAUD_RATE:       9600 bits per second
+-- BIT_CNT:         Number of clock cycles to represent a bit
+-- SAMPLE_CNT       Number of clock cycles to sample a bit
 constant CLK_FREQ   : positive := 1E7;
-constant FREQ_WIDTH : positive := 32;
+constant BAUD_RATE  : positive := 9600;
+constant BIT_CNT    : positive := 1040;
+constant SAMPLE_CNT : positive := 520;
 
 -- step_type:       Subtype defining the range of steps including 0
 -- step_arr:        std_loigc array of length N_STPES used to represent the output wave of each step
@@ -94,7 +115,7 @@ signal rest_on      : std_logic := '1';
 -- note_freq:       Internal signal array of frequencies corresponding to each step   
 signal curr_step    : step_type := step_type'low;
 signal step_wave    : step_arr := (others => '0');
-signal note_freq    : freq_arr := (others => (others => '1'));
+signal note_freq    : freq_arr := (others => (others => '0'));
 
 begin
     
@@ -102,13 +123,20 @@ begin
     new_clock: Clock_Divider
         Generic Map (CLK_FREQ => CLK_FREQ, CLK_OUT_FREQ => 20)
         Port Map (clk => clk, reset => reset_clk, clk_out => new_clk);
-                
+
+    -- Instatiates 'N_STEPS' Note_Handler models for each step within the sequencer
+    gen_note_handlers: for index in 1 to N_STEPS generate
+        handler: Note_Handler
+            Generic Map (BAUD_RATE => BAUD_RATE, BIT_CNT => BIT_CNT, SAMPLE_CNT => SAMPLE_CNT, FREQ_WIDTH => FREQ_WIDTH)
+            Port Map (clk => clk, reset => reset, note_stream => note_stream(index), note_freq => note_freq(index));
+    end generate gen_note_handlers;
+
     -- Instatiates 'N_STEPS' Square_Wave_Gen models for each step within the sequencer
-    generate_waves: for index in 1 to N_STEPS generate
+    gen_waves: for index in 1 to N_STEPS generate
         square_wave: Square_Wave_Gen
             Generic Map (CLK_FREQ => CLK_FREQ, FREQ_WIDTH => FREQ_WIDTH)
             Port Map (clk => clk, reset => reset, freq => note_freq(index), out_wave => step_wave(index));
-    end generate generate_waves;
+    end generate gen_waves;
         
     -- Process that manages the present and next states based on internal toggle signal
     state_machine: process(p_state, new_clk, strt, stop) is
@@ -198,23 +226,5 @@ begin
             out_wave <= step_wave(curr_step);
         end if;
     end process output_wave;
-    
-    -- Assigns note frequency values to each element in note_freq array
-    -- If no note is assigned (frequency bit vector set to all 1's), the note is considered as a rest
-    -- TODO: note frequency values to be determined by buttons on fpga; hard-coded to 220 Hz for now 
-    note_assign: process(clk) is
-    begin
-        if (rising_edge(clk)) then
-            if (p_state /= idle) then
-                for index in 1 to N_STEPS loop
-                    if (step_ready(index) = '1') then
-                        note_freq(index) <= std_logic_vector(to_unsigned(220, note_freq(index)'length));
-                    else
-                        note_freq(index) <= (others => '1');
-                    end if;
-                end loop;
-            end if;
-        end if;
-    end process note_assign;
     
 end architecture Behavioral;
