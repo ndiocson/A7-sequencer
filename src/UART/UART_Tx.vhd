@@ -5,7 +5,7 @@
 -- Create Date: 10/19/2019 11:55:14 AM
 -- Design Name: UART Transmitter
 -- Module Name: UART_Tx - Behavioral
--- Project Name: UART
+-- Project Name: N-Step Sequencer
 -- Target Devices: Arty A7-35T
 -- Tool Versions: 
 -- Description: 
@@ -23,10 +23,10 @@ use IEEE.std_logic_1164.all;
 
 entity UART_Tx is
     Generic (
-            BAUD_RATE       : integer := 9600;
-            BIT_CNT         : integer := 1040;
-            SAMPLE_CNT      : integer := 520;
-            TRAN_BITS       : integer := 8
+            BAUD_RATE       : positive := 9600;
+            BIT_CNT         : positive := 1040;
+            SAMPLE_CNT      : positive := 520;
+            TRAN_BITS       : positive := 8
             );
     Port (
             clk, reset      : in std_logic;
@@ -137,7 +137,7 @@ begin
     end process memory_elem;
     
     -- Process that transmits data bits to the output_stream depending on the state
-    transmit_proc: process(transmit, write_bit) is
+    transmit_proc: process(p_state, transmit, write_bit) is
     begin
         case p_state is
         
@@ -148,6 +148,7 @@ begin
                 tx_stop <= '0';
                 tx_done <= '0';
                 output_stream <= '1';
+                curr_pos <= tx_size'low;
                 if (transmit = '1') then
                     tx_init <= '1';
                 else
@@ -160,6 +161,7 @@ begin
                 tx_init <= '0';
                 tx_stop <= '0';
                 tx_done <= '0';
+                curr_pos <= tx_size'low;
                 if (write_bit = '1') then
                     output_stream <= '0';
                     tx_strt <= '1';
@@ -192,6 +194,7 @@ begin
                 tx_stop <= '0';
                 tx_done <= '1';
                 output_stream <= '1';
+                curr_pos <= tx_size'low;
                 
         end case;
     end process transmit_proc;
