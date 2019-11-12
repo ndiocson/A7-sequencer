@@ -29,6 +29,7 @@ architecture Test of Note_Handler_Tb is
 
 component Note_Handler is
     Generic (
+            N_STEPS         : positive := 4;
             BAUD_RATE       : positive := 9600;
             BIT_CNT         : positive := 1040;
             SAMPLE_CNT      : positive := 520;
@@ -37,6 +38,7 @@ component Note_Handler is
     Port (
             clk, reset      : in std_logic;
             note_stream     : in std_logic;
+            note_index      : out std_logic_vector(FREQ_WIDTH - 1 downto 0);
             note_freq       : out std_logic_vector(FREQ_WIDTH - 1 downto 0)
             );
 end component Note_Handler;
@@ -57,11 +59,13 @@ component UART_Tx is
 end component UART_Tx;
 
 -- CLK_PERIOD:          Simulatted Clock Period
+-- N_STEPS:             4 steps in sequencer
 -- BAUD_RATE:           9600 bits per second
 -- BIT_CNT:             Number of clock cycles to represent a bit
 -- SAMPLE_CNT           Number of clock cycles to sample a bit
 -- FREQ_WIDTH:          Number of bits to represent note frequencies
 constant CLK_PERIOD     : time := 100 ns;
+constant N_STEPS        : positive := 4;
 constant BAUD_RATE      : positive := 9600;
 constant BIT_CNT        : positive := 1040;
 constant SAMPLE_CNT     : positive := 520;
@@ -77,14 +81,15 @@ signal transmit         : std_logic := '0';
 signal tx_bits          : std_logic_vector(FREQ_WIDTH - 1 downto 0);
 
 -- Output Signal
+signal note_index       : std_logic_vector(FREQ_WIDTH - 1 downto 0);
 signal note_freq        : std_logic_vector(FREQ_WIDTH - 1 downto 0);
 
 begin
     
     -- Instantiates device under test
     DUT: Note_Handler
-        Generic Map (BAUD_RATE => BAUD_RATE, BIT_CNT => BIT_CNT, SAMPLE_CNT => SAMPLE_CNT, FREQ_WIDTH => FREQ_WIDTH)
-        Port Map (clk => clk, reset => reset, note_stream => note_stream, note_freq => note_freq);
+        Generic Map (N_STEPS => N_STEPS, BAUD_RATE => BAUD_RATE, BIT_CNT => BIT_CNT, SAMPLE_CNT => SAMPLE_CNT, FREQ_WIDTH => FREQ_WIDTH)
+        Port Map (clk => clk, reset => reset, note_stream => note_stream, note_index => note_index, note_freq => note_freq);
         
     -- Instantiates transmitter to stimulate data_stream
     transmitter: UART_Tx
@@ -105,14 +110,25 @@ begin
     begin
         
         -- 220Hz note frequency
+        wait for 50 ms;
+        tx_bits <= std_logic_vector(to_unsigned(1, FREQ_WIDTH));
+        transmit <= '1';
+        wait for 20 us;
+        transmit <= '0';
+        wait for 50 ms;
         tx_bits <= std_logic_vector(to_unsigned(220, FREQ_WIDTH));
         transmit <= '1';
         wait for 20 us;
         transmit <= '0';        
         
-        wait for 100 ms;
+        wait for 50 ms;
         
         -- 440Hz note frequency
+        tx_bits <= std_logic_vector(to_unsigned(2, FREQ_WIDTH));
+        transmit <= '1';
+        wait for 20 us;
+        transmit <= '0';
+        wait for 50 ms;
         tx_bits <= std_logic_vector(to_unsigned(440, FREQ_WIDTH));
         transmit <= '1';
         wait for 20 us;
@@ -124,9 +140,14 @@ begin
         wait for 20 us;
         reset <= '0';
         
-        wait for 100 ms;
+        wait for 50 ms;
         
         -- 880Hz note frequency
+        tx_bits <= std_logic_vector(to_unsigned(3, FREQ_WIDTH));
+        transmit <= '1';
+        wait for 20 us;
+        transmit <= '0';
+        wait for 50 ms;
         tx_bits <= std_logic_vector(to_unsigned(880, FREQ_WIDTH));
         transmit <= '1';
         wait for 20 us;
