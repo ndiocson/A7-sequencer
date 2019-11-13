@@ -38,7 +38,7 @@ component Note_Handler is
     Port (
             clk, reset      : in std_logic;
             note_stream     : in std_logic;
-            note_index      : out std_logic_vector(FREQ_WIDTH - 1 downto 0);
+            note_index      : out integer;
             note_freq       : out std_logic_vector(FREQ_WIDTH - 1 downto 0)
             );
 end component Note_Handler;
@@ -81,7 +81,7 @@ signal transmit         : std_logic := '0';
 signal tx_bits          : std_logic_vector(FREQ_WIDTH - 1 downto 0);
 
 -- Output Signal
-signal note_index       : std_logic_vector(FREQ_WIDTH - 1 downto 0);
+signal note_index       : integer;
 signal note_freq        : std_logic_vector(FREQ_WIDTH - 1 downto 0);
 
 begin
@@ -135,7 +135,7 @@ begin
         transmit <= '0';
         
         -- Tests reset signal
-        wait for 400 us;
+        wait for 25 ms;
         reset <= '1';
         wait for 20 us;
         reset <= '0';

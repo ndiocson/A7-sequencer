@@ -33,7 +33,7 @@ entity Note_Handler is
     Port (
             clk, reset      : in std_logic;
             note_stream     : in std_logic;
-            note_index      : out std_logic_vector(FREQ_WIDTH - 1 downto 0);
+            note_index      : out integer;
             note_freq       : out std_logic_vector(FREQ_WIDTH - 1 downto 0)
             );
 end entity Note_Handler;
@@ -51,6 +51,7 @@ component UART_Rx is
     Port (
             clk, reset      : in std_logic;
             input_stream    : in std_logic;
+            receiving       : out std_logic;
             rx_bits         : out std_logic_vector(TRAN_BITS - 1 downto 0)
             );
 end component UART_Rx;
@@ -58,17 +59,18 @@ end component UART_Rx;
 -- state:           Enumerated type to define two states of simple FSM
 -- p_state:         Internal state signal used to represent the present state
 -- n_state:         Internal state signal used to represent the next state
-type state is (rx_index, rx_freq);
-signal p_state, n_state : state := rx_index;
+type state is (idle, get_index, get_freq);
+signal p_state, n_state : state := idle;
 
--- out_code:    Internal signal used to represent output line of data_stream
--- rx_bits:     Internal signal vector to hold received bits from data_stream
--- rx_step:     Internal signal used to hold received bits that represent a note index
--- rx_note:     Internal signal used ot hold received bits that represent a note freq
-signal out_code : std_logic := '0';
-signal rx_bits  : std_logic_vector(FREQ_WIDTH - 1 downto 0);
-signal rx_step  : std_logic_vector(FREQ_WIDTH - 1 downto 0);
-signal rx_note  : std_logic_vector(FREQ_WIDTH - 1 downto 0);
+-- out_code:        Internal signal used to represent output line of data_stream
+-- rx_bits:         Internal signal vector to hold received bits from data_stream
+-- rx_step:         Internal signal used to hold received bits that represent a note index
+-- rx_note:         Internal signal used ot hold received bits that represent a note freq
+signal out_code     : std_logic := '0';
+signal receiving    : std_logic := '0';
+signal rx_bits      : std_logic_vector(FREQ_WIDTH - 1 downto 0);
+signal rx_step      : std_logic_vector(FREQ_WIDTH - 1 downto 0);
+signal rx_note      : std_logic_vector(FREQ_WIDTH - 1 downto 0);
 
 -- isValidIndex Function that returns true if given bit vector is within the step index range
 function isValidIndex(rx_bits : std_logic_vector(FREQ_WIDTH - 1 downto 0)) return boolean is
@@ -86,26 +88,42 @@ begin
     -- Instantiates a UART Receiver to collect the bits representing the note frequency value
     receiver: UART_Rx
         Generic Map(BAUD_RATE => BAUD_RATE, BIT_CNT => BIT_CNT, SAMPLE_CNT => SAMPLE_CNT, TRAN_BITS => FREQ_WIDTH)
-        Port Map (clk => clk, reset => reset, input_stream => note_stream, rx_bits => rx_bits);
+        Port Map (clk => clk, reset => reset, input_stream => note_stream, receiving => receiving, rx_bits => rx_bits);
     
     -- Process that manages the present and next states based on internal input stream
-    state_machine: process(rx_bits) is
+    state_machine: process(receiving, rx_bits) is
     begin
         case p_state is
             
-            when rx_index =>
-                out_code <= '0';
-                if (isValidIndex(rx_bits)) then
-                    rx_step <= rx_bits;
-                    n_state <= rx_freq;
+            when idle =>
+                note_index <= 1;
+                note_freq <= (others => '1');
+                if (receiving = '1') then
+                    if (out_code = '0') then
+                        n_state <= get_index;
+                    else
+                        n_state <= get_freq;
+                    end if;
                 else
                     n_state <= p_state;
                 end if;
-                
-            when rx_freq =>
+        
+            when get_index =>
                 out_code <= '1';
-                rx_note <= rx_bits;
-                n_state <= rx_index;
+                if (receiving = '0') then
+                    if (isValidIndex(rx_bits)) then
+--                        rx_step <= rx_bits;
+                        note_index <= to_integer(unsigned(rx_bits));
+                    end if;
+                end if;
+                n_state <= idle;
+                
+            when get_freq =>
+                out_code <= '0';
+                if (receiving = '0') then
+                    note_freq <= rx_bits;
+                end if;
+                n_state <= idle;
         
         end case;
     end process state_machine;
@@ -114,16 +132,16 @@ begin
     memory_elem: process(clk, reset) is
     begin
         if (reset = '1') then
-            p_state <= rx_index;
-            note_index <= (0 => '1', others => '0');
-            note_freq <= (others => '1');
+            p_state <= idle;
+--            note_index <= 1;
+--            note_freq <= (others => '1');
         elsif (rising_edge(clk)) then
             p_state <= n_state;
-            if (out_code = '1') then
-                note_freq <= rx_note;
-            else
-                note_index <= rx_step;
-            end if;
+--            if (out_code = '0') then
+--                note_index <= to_integer(unsigned(rx_step));
+--            else
+--                note_freq <= rx_note;
+--            end if;
         end if;
     end process memory_elem;
     
