@@ -133,7 +133,6 @@ signal rest_on      : std_logic := '1';
 -- note_rdy:        Internal signal array of indices corresponding to each step
 -- note_freq:       Internal signal array of frequencies corresponding to each step
 -- rx_bits:         Internal signal vector to hold received bits from data_stream
-signal note_index   : note_type := note_type'low;
 signal note_rdy     : step_arr := (others => '0');
 signal note_freq    : freq_arr := (others => (others => '1'));
 signal rx_bits      : std_logic_vector(FREQ_WIDTH - 1 downto 0);
@@ -236,16 +235,13 @@ begin
         end if;
     end process memory_elem;
     
-    -- 
-    note_index <= to_integer(unsigned(rx_bits));
-    
     -- Process to receive and store index bits from input stream and toggle corresponding note_rdy signal
-    index_handler: process(clk, note_index) is
+    index_handler: process(clk, rx_bits) is
     begin
         if (rising_edge(clk)) then
-            if (isValidIndex(note_index)) then
+            if (isValidIndex(to_integer(unsigned(rx_bits)))) then
                 for index in note_type loop
-                    if (index = note_index) then
+                    if (index = to_integer(unsigned(rx_bits))) then
                         note_rdy(index) <= '1';
                     else
                         note_rdy(index) <= '0';
