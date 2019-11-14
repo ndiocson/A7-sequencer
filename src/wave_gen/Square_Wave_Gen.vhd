@@ -29,12 +29,22 @@ entity Square_Wave_Gen is
             );
     Port ( 
             clk, reset      : in std_logic;
+            ready           : in std_logic;
             freq            : in std_logic_vector(FREQ_WIDTH - 1 downto 0);
             out_wave        : out std_logic
             );
 end Square_Wave_Gen;
 
 architecture Behavioral of Square_Wave_Gen is
+
+-- count:               Internal integer signal to keep track of current count
+-- max_count:           Number of cycles in on-board clock to represent one new clock cycle
+-- new_clk:             Internal std_logic signal used to drive out_wave
+-- valid_freq:          Internal std_logic signal to represent a valid input frequency (greater than 0 Hz)
+signal count            : integer := 0;
+signal max_pulse_count  : integer;
+signal new_clk          : std_logic := '0';
+signal valid_freq       : std_logic := '0';
 
 -- isValidFreq: Function that returns true if given frequency is greater than 0 Hz
 function isValidFreq(freq : std_logic_vector(FREQ_WIDTH - 1 downto 0)) return std_logic is
@@ -51,21 +61,6 @@ function calcPulseCount(freq : std_logic_vector(FREQ_WIDTH - 1 downto 0)) return
 begin
     return integer(CLK_FREQ / to_integer(unsigned(freq))) / 2;
 end function calcPulseCount;
-
--- state:       Enumerated type to define two states of simple FSM
--- p_state:     Internal state signal to represent present state
--- n_state:     Internal state signal to represent next state
-type state is (idle, gen_wave);
-signal p_state, n_state : state := idle;
-
--- count:               Internal integer signal to keep track of current count
--- max_count:           Number of cycles in on-board clock to represent one new clock cycle
--- new_clk:             Internal std_logic signal used to drive out_wave
--- valid_freq:          Internal std_logic signal to represent a valid input frequency (greater than 0 Hz)
-signal count            : integer := 0;
-signal max_pulse_count  : integer;
-signal new_clk          : std_logic := '0';
-signal valid_freq       : std_logic := '0';
 
 begin
 
@@ -85,10 +80,13 @@ begin
     end process update_count;
       
     -- Counts the number of on-board clock cycles to generate a new clock of the given input frequency
-    count_proc: process(clk, p_state) is
-    begin        
-        if (rising_edge(clk)) then
-            if (reset = '1' or valid_freq = '0') then
+    count_proc: process(clk, reset) is
+    begin
+        if (reset = '1') then
+            count <= 0;
+            new_clk <= '0';
+        elsif (rising_edge(clk)) then
+            if (ready = '0' or valid_freq = '0') then
                 count <= 0;
                 new_clk <= '0';
             elsif (count >= max_pulse_count) then

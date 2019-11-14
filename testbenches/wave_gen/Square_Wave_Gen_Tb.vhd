@@ -6,7 +6,7 @@
 -- Design Name: Square Wave Generator Testbench
 -- Module Name: Square_Wave_Gen_Tb - Test
 -- Project Name: N-Step Sequencer
--- Target Devices: N-Step Sequencer
+-- Target Devices: Arty A7-35T
 -- Tool Versions: 
 -- Description: 
 -- 
@@ -23,7 +23,7 @@ use IEEE.std_logic_1164.all;
 use IEEE.numeric_std.all;
 
 entity Square_Wave_Gen_Tb is
-end Square_Wave_Gen_Tb;
+end entity Square_Wave_Gen_Tb;
 
 architecture Test of Square_Wave_Gen_Tb is
 
@@ -35,6 +35,7 @@ component Square_Wave_Gen is
             );
     Port ( 
             clk, reset      : in std_logic;
+            ready           : in std_logic;
             freq            : in std_logic_vector(FREQ_WIDTH - 1 downto 0);
             out_wave        : out std_logic
             );
@@ -46,6 +47,7 @@ constant CLK_PERIOD     : time := 100 ns;
 -- Input Signals
 signal clk              : std_logic := '0';
 signal reset            : std_logic := '0';
+signal ready            : std_logic := '0';
 signal freq             : std_logic_vector(31 downto 0) := std_logic_vector(to_unsigned(220, 32));
 
 -- Output Signal
@@ -54,9 +56,9 @@ signal out_wave         : std_logic := '0';
 begin
     
     -- Instantiates device under test
-    DUT: entity work.Square_Wave_Gen(Behavioral)
+    DUT: Square_Wave_Gen
         Generic Map (CLK_FREQ => open, FREQ_WIDTH => open)
-        Port Map (clk => clk, reset => reset, freq => freq, out_wave => out_wave);
+        Port Map (clk => clk, reset => reset, ready => ready, freq => freq, out_wave => out_wave);
         
     -- Drives input clk signal
     drive_clk: process is
@@ -70,22 +72,35 @@ begin
     -- Process to sitmulate input signals of DUT
     stimulus: process is
     begin
+        
         wait for 50 ms;
-        freq <= (others => '1');
+        ready <= '1';
+        freq <= std_logic_vector(to_unsigned(220, 32));
         wait for 40 ms;
---        reset <= '1';
+        ready <= '0';
+        
         wait for 10 ms;
+        ready <= '1';
         freq <= std_logic_vector(to_unsigned(440, 32));
+        wait for 20 ms;
+        reset <= '1';
         wait for 10 ms;
---        reset <= '0';
-        wait for 40 ms;
-        freq <= (others => '1');
-        wait for 50 ms;       
+        reset <= '0';
+        ready <= '0';
+        
+        wait for 30 ms;
+        ready <= '1';
+        wait for 20 ms;
         freq <= std_logic_vector(to_unsigned(880, 32));
         wait for 50 ms;
+        ready <= '0';
+        
+        wait for 50 ms;
+        ready <= '1';
         freq <= (others => '1');
-        wait for 50 ms;        
-        freq <= std_logic_vector(to_unsigned(220, 32));
+        wait for 40 ms;
+        ready <= '0';
+        
         wait;
     end process stimulus;
     
