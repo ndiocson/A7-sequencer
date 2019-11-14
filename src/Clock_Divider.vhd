@@ -57,6 +57,7 @@ signal toggle_clk   : std_logic := '0';
 
 begin
     
+    -- Instantiates a Counter to drive the toggle_clk signal
     count_inst: Counter
         Generic Map (CLK_FREQ => CLK_FREQ, MAX_COUNT => MAX_COUNT)
         Port Map (clk => clk, reset => reset, max_reached => toggle_clk);
