@@ -32,8 +32,8 @@ entity Sequencer is
     Port (
             clk, reset          : in std_logic;
             strt, stop          : in std_logic;
+            input_stream        : in std_logic;
             step_ready          : in std_logic_vector(N_STEPS downto 1);
-            note_stream         : in std_logic_vector(N_STEPS downto 1);
             step_out            : out std_logic_vector(N_STEPS downto 1);
             out_wave            : out std_logic
             );
@@ -53,8 +53,23 @@ component Clock_Divider is
             );
 end component Clock_Divider;
 
--- Note_Handler Component Declaration
-component Note_Handler is
+-- UART_Rx Component Declaration
+component UART_Rx is
+    Generic (
+            BAUD_RATE       : positive := 9600;
+            BIT_CNT         : positive := 1040;
+            SAMPLE_CNT      : positive := 520;
+            TRAN_BITS       : positive := 8
+            );
+    Port (
+            clk, reset      : in std_logic;
+            input_stream    : in std_logic;
+            rx_bits         : out std_logic_vector(TRAN_BITS - 1 downto 0)
+            );
+end component UART_Rx;
+
+-- Freq_Controller Component Declaration
+component Freq_Controller is
     Generic (
             BAUD_RATE       : positive := 9600;
             BIT_CNT         : positive := 1040;
@@ -62,24 +77,36 @@ component Note_Handler is
             FREQ_WIDTH      : positive := 32
             );
     Port (
-            clk, reset      : in std_logic;
-            note_stream     : in std_logic;
+            clk             : in std_logic;
+            reset           : in std_logic;
+            input_stream    : in std_logic;
+            ready           : in std_logic;
             note_freq       : out std_logic_vector(FREQ_WIDTH - 1 downto 0)
             );
-end component Note_Handler;
+end component Freq_Controller;
 
 -- Square_Wave_Gen Component Declaration
 component Square_Wave_Gen is
     Generic (
-            CLK_FREQ        : positive := 1E7;
-            FREQ_WIDTH      : positive := 32
+            CLK_FREQ        : positive := 1E7;      -- on-board clock frequency (10 MHz)
+            FREQ_WIDTH      : positive := 32        -- width of frequency input
             );
     Port ( 
             clk, reset      : in std_logic;
+            ready           : in std_logic;
             freq            : in std_logic_vector(FREQ_WIDTH - 1 downto 0);
             out_wave        : out std_logic
             );
 end component Square_Wave_Gen;
+
+-- step_type:       Subtype defining the range of steps including 0
+-- note_type:       Subtype defining the range of notes corresponding to each valid step
+-- step_arr:        std_loigc array of length N_STPES used to represent the output wave of each step
+-- freq_arr:        std_logic_vector array of length N_STEPS used to represent the frequency of each step
+subtype step_type is integer range 0 to N_STEPS;
+subtype note_type is step_type range step_type'low + 1 to step_type'high;
+type step_arr is array (note_type) of std_logic;
+type freq_arr is array (note_type) of std_logic_vector(FREQ_WIDTH - 1 downto 0);
 
 -- CLK_FREQ:        Constant frequency of on-board clock (10 MHz for Arty A7-35T)
 -- BAUD_RATE:       9600 bits per second
@@ -90,14 +117,7 @@ constant BAUD_RATE  : positive := 9600;
 constant BIT_CNT    : positive := 1040;
 constant SAMPLE_CNT : positive := 520;
 
--- step_type:       Subtype defining the range of steps including 0
--- step_arr:        std_loigc array of length N_STPES used to represent the output wave of each step
--- freq_arr:        std_logic_vector array of length N_STEPS used to represent the frequency of each step
-subtype step_type is integer range 0 to N_STEPS;
-type step_arr is array (1 to N_STEPS) of std_logic;
-type freq_arr is array (1 to N_STEPS) of std_logic_vector(FREQ_WIDTH - 1 downto 0);
-
--- state:           Enumerated type to define two states of simple FSM
+-- state:           Enumerated type to define states of simple FSM
 -- p_state:         Internal state signal used to represent the present state
 -- n_state:         Internal state signal used to represent the next state
 type state is (idle, play, pause);
@@ -110,12 +130,28 @@ signal new_clk      : std_logic := '0';
 signal reset_clk    : std_logic := '1';
 signal rest_on      : std_logic := '1';
 
+-- note_rdy:        Internal signal array of indices corresponding to each step
+-- note_freq:       Internal signal array of frequencies corresponding to each step
+-- rx_bits:         Internal signal vector to hold received bits from data_stream
+signal note_index   : note_type := note_type'low;
+signal note_rdy     : step_arr := (others => '0');
+signal note_freq    : freq_arr := (others => (others => '1'));
+signal rx_bits      : std_logic_vector(FREQ_WIDTH - 1 downto 0);
+
 -- curr_step:       Internal signal used to track current step position in sequencer
 -- step_wave:       Internal signal array of indicies representing each step wave
--- note_freq:       Internal signal array of frequencies corresponding to each step   
 signal curr_step    : step_type := step_type'low;
 signal step_wave    : step_arr := (others => '0');
-signal note_freq    : freq_arr := (others => (others => '0'));
+
+-- isValidIndex Function that returns true if given bit vector is within the step index range
+function isValidIndex(index: note_type) return boolean is
+variable isValid    : boolean := false;
+begin
+    if (index >= note_type'low and index <= note_type'high) then
+        isValid := true;
+    end if;
+    return isValid;
+end function isValidIndex;
 
 begin
     
@@ -124,20 +160,25 @@ begin
         Generic Map (CLK_FREQ => CLK_FREQ, CLK_OUT_FREQ => 20)
         Port Map (clk => clk, reset => reset_clk, clk_out => new_clk);
 
-    -- Instatiates 'N_STEPS' Note_Handler models for each step within the sequencer
-    gen_note_handlers: for index in 1 to N_STEPS generate
-        handler: Note_Handler
+    -- Instantiates a UART Receiver to collect the bits representing the note frequency value
+    receiver: UART_Rx
+        Generic Map(BAUD_RATE => BAUD_RATE, BIT_CNT => BIT_CNT, SAMPLE_CNT => SAMPLE_CNT, TRAN_BITS => FREQ_WIDTH)
+        Port Map (clk => clk, reset => reset, input_stream => input_stream, rx_bits => rx_bits);
+    
+    -- Instantiates 'N_STEPS' Freq_Controller modesl for each step within the sequencer 
+    gen_freq_ctrls: for index in note_type generate
+        freq_ctrl: Freq_Controller
             Generic Map (BAUD_RATE => BAUD_RATE, BIT_CNT => BIT_CNT, SAMPLE_CNT => SAMPLE_CNT, FREQ_WIDTH => FREQ_WIDTH)
-            Port Map (clk => clk, reset => reset, note_stream => note_stream(index), note_freq => note_freq(index));
-    end generate gen_note_handlers;
-
+            Port Map (clk => clk, reset => reset, input_stream => input_stream, ready => note_rdy(index), note_freq => note_freq(index));
+    end generate gen_freq_ctrls;
+    
     -- Instatiates 'N_STEPS' Square_Wave_Gen models for each step within the sequencer
-    gen_waves: for index in 1 to N_STEPS generate
+    gen_waves: for index in note_type generate
         square_wave: Square_Wave_Gen
             Generic Map (CLK_FREQ => CLK_FREQ, FREQ_WIDTH => FREQ_WIDTH)
-            Port Map (clk => clk, reset => reset, freq => note_freq(index), out_wave => step_wave(index));
+            Port Map (clk => clk, reset => reset, ready => not note_rdy(index), freq => note_freq(index), out_wave => step_wave(index));
     end generate gen_waves;
-        
+    
     -- Process that manages the present and next states based on internal toggle signal
     state_machine: process(p_state, new_clk, strt, stop) is
     begin
@@ -166,8 +207,8 @@ begin
                 -- Increments the curr_step index signal every two clock cycles
                 if (rising_edge(new_clk)) then
                     if (rest_on = '1') then
-                        if (curr_step >= step_type'high) then
-                            curr_step <= step_type'low + 1;
+                        if (curr_step >= note_type'high) then
+                            curr_step <= note_type'low;
                         else
                             curr_step <= curr_step + 1;
                         end if;
@@ -195,13 +236,36 @@ begin
         end if;
     end process memory_elem;
     
+    -- 
+    note_index <= to_integer(unsigned(rx_bits));
+    
+    -- Process to receive and store index bits from input stream and toggle corresponding note_rdy signal
+    index_handler: process(clk, note_index) is
+    begin
+        if (rising_edge(clk)) then
+            if (isValidIndex(note_index)) then
+                for index in note_type loop
+                    if (index = note_index) then
+                        note_rdy(index) <= '1';
+                    else
+                        note_rdy(index) <= '0';
+                    end if;
+                end loop;
+            else
+                note_rdy <= (others => '0');
+            end if;
+        end if;
+    end process index_handler;
+    
     -- Toggles rest_on every clock cycle
     -- Drives rest_on to '1' when sequencer is paused
     toggle_rest: process(new_clk, p_state) is
     begin
-        if (rising_edge(new_clk) and p_state = play) then
-            rest_on <= not rest_on;
-        elsif (p_state = pause) then
+        if (p_state = play) then
+            if (rising_edge(new_clk)) then
+                rest_on <= not rest_on;
+            end if;
+        else
             rest_on <= '1';
         end if;
     end process toggle_rest;
@@ -223,7 +287,9 @@ begin
         if (p_state /= play or rest_on = '1') then
             out_wave <= '0';
         else
-            out_wave <= step_wave(curr_step);
+            if (step_ready(curr_step) = '1') then
+                out_wave <= step_wave(curr_step);
+            end if;
         end if;
     end process output_wave;
     
