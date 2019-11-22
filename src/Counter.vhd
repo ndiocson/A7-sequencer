@@ -35,8 +35,8 @@ end entity Counter;
 
 architecture Behavioral of Counter is
 
--- count:   Shared variable to keep track of current count
-shared variable count  : integer := 0;
+-- count:   Internal signal to keep track of current count
+signal count  : integer := 0;
 
 begin
     
@@ -44,14 +44,14 @@ begin
     count_proc: process(clk, reset) is
     begin
         if (reset = '1') then
-            count := 0;
+            count <= 0;
             max_reached <= '0'; 
         elsif (rising_edge(clk)) then
             if (count >= MAX_COUNT) then
-                count := 0;
+                count <= 0;
                 max_reached <= '1';
             else
-                count := count + 1;
+                count <= count + 1;
                 max_reached <= '0';
             end if;
         end if;
