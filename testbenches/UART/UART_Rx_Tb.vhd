@@ -5,7 +5,7 @@
 -- Create Date: 10/13/2019 01:25:27 PM
 -- Design Name: UART Receiver Testbench
 -- Module Name: UART_Rx_Tb - Test
--- Project Name: UART
+-- Project Name: N-Step Sequencer
 -- Target Devices: Arty A7-35T
 -- Tool Versions: 
 -- Description: 

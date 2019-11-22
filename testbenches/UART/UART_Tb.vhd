@@ -5,7 +5,7 @@
 -- Create Date: 10/31/2019 07:19:03 AM
 -- Design Name: UART Testbench
 -- Module Name: UART_Tb - Test
--- Project Name: UART
+-- Project Name: N-Step Sequencer
 -- Target Devices: Arty A7-35T
 -- Tool Versions: 
 -- Description: 

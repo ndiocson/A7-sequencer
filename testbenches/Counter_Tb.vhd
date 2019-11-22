@@ -5,7 +5,7 @@
 -- Create Date: 10/13/2019 10:07:04 AM
 -- Design Name: Counter Testbench
 -- Module Name: Counter_Tb - Test
--- Project Name: UART
+-- Project Name: N-Step Sequencer
 -- Target Devices: Arty A7-35T
 -- Tool Versions: 
 -- Description: 
