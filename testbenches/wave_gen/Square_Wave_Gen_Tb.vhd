@@ -30,8 +30,8 @@ architecture Test of Square_Wave_Gen_Tb is
 -- Square_Wave_Gen Component Declaration
 component Square_Wave_Gen is
     Generic (
-            CLK_FREQ        : positive := 1E7;      -- on-board clock frequency (10 MHz)
-            FREQ_WIDTH      : positive := 32        -- width of frequency input
+            CLK_FREQ        : positive := 1E8;      -- on-board clock frequency (default: 100 MHz)
+            FREQ_WIDTH      : positive := 32        -- width of frequency input (default: 32 bits)
             );
     Port ( 
             clk, reset      : in std_logic;
@@ -41,8 +41,12 @@ component Square_Wave_Gen is
             );
 end component Square_Wave_Gen;
 
--- Simulatted Clock Period
+-- CLK_PERIOD:          Simulated clock period
+-- CLK_FREQ:            Clock frequency
+-- FREQ_WIDTH:          Number of bits to represent note frequencies
 constant CLK_PERIOD     : time := 100 ns;
+constant CLK_FREQ       : positive := 1E8;
+constant FREQ_WIDTH     : positive := 32;
 
 -- Input Signals
 signal clk              : std_logic := '0';
@@ -57,7 +61,7 @@ begin
     
     -- Instantiates device under test
     DUT: Square_Wave_Gen
-        Generic Map (CLK_FREQ => open, FREQ_WIDTH => open)
+        Generic Map (CLK_FREQ => CLK_FREQ, FREQ_WIDTH => FREQ_WIDTH)
         Port Map (clk => clk, reset => reset, ready => ready, freq => freq, out_wave => out_wave);
         
     -- Drives input clk signal

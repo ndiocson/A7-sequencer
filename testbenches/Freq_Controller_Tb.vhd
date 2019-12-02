@@ -30,10 +30,9 @@ architecture Test of Freq_Controller_Tb is
 -- Freq_Controller Component Declaration
 component Freq_Controller is
     Generic (
-            BAUD_RATE       : positive := 9600;
-            BIT_CNT         : positive := 1040;
-            SAMPLE_CNT      : positive := 520;
-            FREQ_WIDTH      : positive := 32
+            CLK_FREQ        : positive := 1E8;      -- on-board clock frequency (default: 100 MHz)
+            BAUD_RATE       : positive := 9600;     -- rate of transmission (default: 9600 baud)
+            FREQ_WIDTH      : positive := 32        -- width of frequency input (default: 32 bits)
             );
     Port (
             clk             : in std_logic;
@@ -47,28 +46,25 @@ end component Freq_Controller;
 -- UART_Tx Component Declaration
 component UART_Tx is
     Generic (
-            BAUD_RATE       : positive := 9600;
-            BIT_CNT         : positive := 1040;
-            SAMPLE_CNT      : positive := 520;
-            TRAN_BITS       : positive := 8
+            CLK_FREQ        : positive := 1E8;      -- on-board clock frequency (default: 100 MHz)
+            BAUD_RATE       : positive := 9600;     -- rate of transmission (default: 9600 baud)
+            TRAN_BITS       : positive := 8         -- number of transmission bits (defualt: 8)
             );
     Port (
             clk, reset      : in std_logic;
             transmit        : in std_logic;
-            tx_bits         : in std_logic_vector(TRAN_BITS - 1 downto 0);
+            tx_data         : in std_logic_vector(TRAN_BITS - 1 downto 0);
             output_stream   : out std_logic
             );
 end component UART_Tx;
 
--- CLK_PERIOD:          Simulatted Clock Period
+-- CLK_PERIOD:          Simulated clock period
+-- CLK_FREQ:            Clock frequency
 -- BAUD_RATE:           9600 bits per second
--- BIT_CNT:             Number of clock cycles to represent a bit
--- SAMPLE_CNT           Number of clock cycles to sample a bit
 -- FREQ_WIDTH:          Number of bits to represent note frequencies
 constant CLK_PERIOD     : time := 100 ns;
+constant CLK_FREQ       : positive := 1E8;
 constant BAUD_RATE      : positive := 9600;
-constant BIT_CNT        : positive := 1040;
-constant SAMPLE_CNT     : positive := 520;
 constant FREQ_WIDTH     : positive := 32;
 
 -- data_stream:         Signal to be transmitted to and received from 
@@ -78,7 +74,7 @@ signal data_stream     : std_logic := '1';
 signal clk, reset       : std_logic := '0';
 signal ready            : std_logic := '0';
 signal transmit         : std_logic := '0';
-signal tx_bits          : std_logic_vector(FREQ_WIDTH - 1 downto 0);
+signal tx_data          : std_logic_vector(FREQ_WIDTH - 1 downto 0);
 
 -- Output Signal
 signal note_freq        : std_logic_vector(FREQ_WIDTH - 1 downto 0);
@@ -87,13 +83,13 @@ begin
     
     -- Instantiates device under test
     DUT: Freq_Controller
-        Generic Map (BAUD_RATE => BAUD_RATE, BIT_CNT => BIT_CNT, SAMPLE_CNT => SAMPLE_CNT, FREQ_WIDTH => FREQ_WIDTH)
+        Generic Map (CLK_FREQ => CLK_FREQ, BAUD_RATE => BAUD_RATE, FREQ_WIDTH => FREQ_WIDTH)
         Port Map (clk => clk, reset => reset, input_stream => data_stream, ready => ready, note_freq => note_freq);
     
     -- Instantiates a UART Transmitter to send the bits to the stream
     transmitter: UART_Tx
-        Generic Map (BAUD_RATE => BAUD_RATE, BIT_CNT => BIT_CNT, SAMPLE_CNT => SAMPLE_CNT, TRAN_BITS => FREQ_WIDTH)
-        Port Map (clk => clk, reset => reset, transmit => transmit, tx_bits => tx_bits, output_stream => data_stream);
+        Generic Map(CLK_FREQ => CLK_FREQ, BAUD_RATE => BAUD_RATE, TRAN_BITS => FREQ_WIDTH)
+        Port Map(clk => clk, reset => reset, transmit => transmit, tx_data => tx_data, output_stream => data_stream);
 
     -- Drives input clk signal
     drive_clk: process is
@@ -109,19 +105,19 @@ begin
     begin
         
         wait for 25 ms;
-        tx_bits <= std_logic_vector(to_unsigned(220, FREQ_WIDTH));
+        tx_data <= std_logic_vector(to_unsigned(220, FREQ_WIDTH));
         transmit <= '1';
         wait for 20 us;
         transmit <= '0';
         
         wait for 25 ms;
-        tx_bits <= std_logic_vector(to_unsigned(880, FREQ_WIDTH));
+        tx_data <= std_logic_vector(to_unsigned(880, FREQ_WIDTH));
         transmit <= '1';
         wait for 20 us;
         transmit <= '0';
         
         wait for 25 ms;
-        tx_bits <= std_logic_vector(to_unsigned(440, FREQ_WIDTH));
+        tx_data <= std_logic_vector(to_unsigned(440, FREQ_WIDTH));
         transmit <= '1';
         wait for 20 us;
         transmit <= '0';

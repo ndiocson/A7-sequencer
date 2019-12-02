@@ -20,7 +20,6 @@
 
 library IEEE;
 use IEEE.std_logic_1164.all;
-use IEEE.numeric_std.all;
 
 entity Clock_Divider_Tb is
 end entity Clock_Divider_Tb;
@@ -30,8 +29,8 @@ architecture Test of Clock_Divider_Tb is
 -- Clock_Divider Component Declaration
 component Clock_Divider is
     Generic (
-            CLK_FREQ        : positive := 1E7;      -- on-board clock frequency (10 MHz)
-            CLK_OUT_FREQ    : positive := 2         -- desired clock frequency (default 2 Hz)
+            CLK_FREQ        : positive := 1E8;      -- on-board clock frequency (default: 100 MHz)
+            CLK_OUT_FREQ    : positive := 4         -- desired output frequency (default: 4 Hz)
             );
     Port (
             clk, reset      : in std_logic;
@@ -39,8 +38,12 @@ component Clock_Divider is
             );
 end component Clock_Divider;
 
--- Simulatted Clock Period
+-- CLK_PERIOD:          Simulated clock period
+-- CLK_FREQ:            Clock frequency
+-- CLK_OUT_FREQ:        Output frequency in Hz
 constant CLK_PERIOD     : time := 100 ns;
+constant CLK_FREQ       : positive := 1E8;
+constant CLK_OUT_FREQ   : positive := 220;
 
 -- Input Signals
 signal clk              : std_logic := '0';
@@ -53,7 +56,7 @@ begin
 
     -- Instantiates device under test
     DUT: entity work.Clock_Divider(Behavioral)
-        Generic Map (CLK_FREQ => open, CLK_OUT_FREQ => 220)
+        Generic Map (CLK_FREQ => CLK_FREQ, CLK_OUT_FREQ => CLK_OUT_FREQ)
         Port Map (clk => clk, reset => reset, clk_out => clk_out);
 
     -- Drives input clk signal
