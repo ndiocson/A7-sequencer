@@ -24,8 +24,8 @@ use IEEE.numeric_std.all;
 
 entity Square_Wave_Gen is
     Generic (
-            CLK_FREQ        : positive := 1E7;      -- on-board clock frequency (10 MHz)
-            FREQ_WIDTH      : positive := 32        -- width of frequency input
+            CLK_FREQ        : positive := 1E8;      -- on-board clock frequency (default: 100 MHz)
+            FREQ_WIDTH      : positive := 32        -- width of frequency input (default: 32 bits)
             );
     Port ( 
             clk, reset      : in std_logic;
