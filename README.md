@@ -4,6 +4,8 @@
 
 A basic overview of a sequencer describes a timeline that loops across a defined number of 'steps' that can either play a note, or a rest. Each step can play a range of notes, corresponding to a sinusoidal wave of differing frequencies. Thus, when the sequencer is running, the notes assigned to each available step will be played in a 'sequence', forming a tune. Each step can be edited during the sequence to a different note to alter the overall melody.
 
+![Sequencer Simulation for 4 steps](https://github.com/ndiocson/A7-sequencer/blob/master/pictures/Sequencer_Simulation_1.JPG)
+
 ### UART Communication
 
 A UART will be used to control the FPGA with the connected computer. The main features for this interaction will include:
