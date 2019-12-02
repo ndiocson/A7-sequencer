@@ -24,18 +24,21 @@ use IEEE.numeric_std.all;
 
 entity Sequencer is
     Generic (
-            N_STEPS             : positive := 4;
-            FREQ_WIDTH          : positive := 32;
-            STEP_TIME           : time := 500 ms;
-            REST_TIME           : time := 500 ms
+            CLK_FREQ        : positive := 1E8;      -- on-board clock frequency (default: 100 MHz)
+            SEQ_FREQ        : positive := 4;        -- frequency of the sequencer (default: 4 Hz)
+            N_STEPS         : positive := 4;        -- number of steps in sequencer (default: 4 steps)
+            BAUD_RATE       : positive := 9600;     -- rate of transmission (default: 9600 baud)
+            FREQ_WIDTH      : positive := 32;       -- width of frequency input (default: 32 bits)
+            STEP_TIME       : time := 500 ms;
+            REST_TIME       : time := 500 ms
             );
     Port (
-            clk, reset          : in std_logic;
-            strt, stop          : in std_logic;
-            input_stream        : in std_logic;
-            step_ready          : in std_logic_vector(N_STEPS downto 1);
-            step_out            : out std_logic_vector(N_STEPS downto 1);
-            out_wave            : out std_logic
+            clk, reset      : in std_logic;
+            strt, stop      : in std_logic;
+            input_stream    : in std_logic;
+            step_ready      : in std_logic_vector(N_STEPS downto 1);
+            step_out        : out std_logic_vector(N_STEPS downto 1);
+            out_wave        : out std_logic
             );
 end entity Sequencer;
 
@@ -44,8 +47,8 @@ architecture Behavioral of Sequencer is
 -- Clock_Divider Component Declaration
 component Clock_Divider is
     Generic (
-            CLK_FREQ        : positive := 1E7;
-            CLK_OUT_FREQ    : positive := 2
+            CLK_FREQ        : positive := 1E8;      -- on-board clock frequency (default: 100 MHz)
+            CLK_OUT_FREQ    : positive := 4         -- desired output frequency (default: 4 Hz)
             );
     Port (
             clk, reset      : in std_logic;
@@ -56,25 +59,23 @@ end component Clock_Divider;
 -- UART_Rx Component Declaration
 component UART_Rx is
     Generic (
-            BAUD_RATE       : positive := 9600;
-            BIT_CNT         : positive := 1040;
-            SAMPLE_CNT      : positive := 520;
-            TRAN_BITS       : positive := 8
+            CLK_FREQ        : positive := 1E8;      -- on-board clock frequency (default: 100 MHz)
+            BAUD_RATE       : positive := 9600;     -- rate of transmission (default: 9600 baud)
+            TRAN_BITS       : positive := 8         -- number of transmission bits (defualt: 8 bits)
             );
     Port (
             clk, reset      : in std_logic;
             input_stream    : in std_logic;
-            rx_bits         : out std_logic_vector(TRAN_BITS - 1 downto 0)
+            rx_data         : out std_logic_vector(TRAN_BITS - 1 downto 0)
             );
 end component UART_Rx;
 
 -- Freq_Controller Component Declaration
 component Freq_Controller is
     Generic (
-            BAUD_RATE       : positive := 9600;
-            BIT_CNT         : positive := 1040;
-            SAMPLE_CNT      : positive := 520;
-            FREQ_WIDTH      : positive := 32
+            CLK_FREQ        : positive := 1E8;      -- on-board clock frequency (default: 100 MHz)
+            BAUD_RATE       : positive := 9600;     -- rate of transmission (default: 9600 baud)
+            FREQ_WIDTH      : positive := 32        -- width of frequency input (default: 32 bits)
             );
     Port (
             clk             : in std_logic;
@@ -88,8 +89,8 @@ end component Freq_Controller;
 -- Square_Wave_Gen Component Declaration
 component Square_Wave_Gen is
     Generic (
-            CLK_FREQ        : positive := 1E7;      -- on-board clock frequency (10 MHz)
-            FREQ_WIDTH      : positive := 32        -- width of frequency input
+            CLK_FREQ        : positive := 1E8;      -- on-board clock frequency (default: 100 MHz)
+            FREQ_WIDTH      : positive := 32        -- width of frequency input (default: 32 bits)
             );
     Port ( 
             clk, reset      : in std_logic;
@@ -107,15 +108,6 @@ subtype step_type is integer range 0 to N_STEPS;
 subtype note_type is step_type range step_type'low + 1 to step_type'high;
 type step_arr is array (note_type) of std_logic;
 type freq_arr is array (note_type) of std_logic_vector(FREQ_WIDTH - 1 downto 0);
-
--- CLK_FREQ:        Constant frequency of on-board clock (10 MHz for Arty A7-35T)
--- BAUD_RATE:       9600 bits per second
--- BIT_CNT:         Number of clock cycles to represent a bit
--- SAMPLE_CNT       Number of clock cycles to sample a bit
-constant CLK_FREQ   : positive := 1E7;
-constant BAUD_RATE  : positive := 9600;
-constant BIT_CNT    : positive := 1040;
-constant SAMPLE_CNT : positive := 520;
 
 -- state:           Enumerated type to define states of simple FSM
 -- p_state:         Internal state signal used to represent the present state
@@ -135,7 +127,7 @@ signal rest_on      : std_logic := '1';
 -- rx_bits:         Internal signal vector to hold received bits from data_stream
 signal note_rdy     : step_arr := (others => '0');
 signal note_freq    : freq_arr := (others => (others => '1'));
-signal rx_bits      : std_logic_vector(FREQ_WIDTH - 1 downto 0);
+signal rx_data      : std_logic_vector(FREQ_WIDTH - 1 downto 0);
 
 -- curr_step:       Internal signal used to track current step position in sequencer
 -- step_wave:       Internal signal array of indicies representing each step wave
@@ -156,18 +148,18 @@ begin
     
     -- Instantiates a Clock_Divider to drive the new_clk signal
     new_clock: Clock_Divider
-        Generic Map (CLK_FREQ => CLK_FREQ, CLK_OUT_FREQ => 20)
+        Generic Map (CLK_FREQ => CLK_FREQ, CLK_OUT_FREQ => SEQ_FREQ)
         Port Map (clk => clk, reset => reset_clk, clk_out => new_clk);
-
+    
     -- Instantiates a UART Receiver to collect the bits representing the note frequency value
     receiver: UART_Rx
-        Generic Map(BAUD_RATE => BAUD_RATE, BIT_CNT => BIT_CNT, SAMPLE_CNT => SAMPLE_CNT, TRAN_BITS => FREQ_WIDTH)
-        Port Map (clk => clk, reset => reset, input_stream => input_stream, rx_bits => rx_bits);
+        Generic Map(CLK_FREQ => CLK_FREQ, BAUD_RATE => BAUD_RATE, TRAN_BITS => FREQ_WIDTH)
+        Port Map (clk => clk, reset => reset, input_stream => input_stream, rx_data => rx_data);
     
-    -- Instantiates 'N_STEPS' Freq_Controller modesl for each step within the sequencer 
+    -- Instantiates 'N_STEPS' Freq_Controller models for each step within the sequencer 
     gen_freq_ctrls: for index in note_type generate
         freq_ctrl: Freq_Controller
-            Generic Map (BAUD_RATE => BAUD_RATE, BIT_CNT => BIT_CNT, SAMPLE_CNT => SAMPLE_CNT, FREQ_WIDTH => FREQ_WIDTH)
+            Generic Map (CLK_FREQ => CLK_FREQ, BAUD_RATE => BAUD_RATE, FREQ_WIDTH => FREQ_WIDTH)
             Port Map (clk => clk, reset => reset, input_stream => input_stream, ready => note_rdy(index), note_freq => note_freq(index));
     end generate gen_freq_ctrls;
     
@@ -236,12 +228,12 @@ begin
     end process memory_elem;
     
     -- Process to receive and store index bits from input stream and toggle corresponding note_rdy signal
-    index_handler: process(clk, rx_bits) is
+    index_handler: process(clk, rx_data) is
     begin
         if (rising_edge(clk)) then
-            if (isValidIndex(to_integer(unsigned(rx_bits)))) then
+            if (isValidIndex(to_integer(unsigned(rx_data)))) then
                 for index in note_type loop
-                    if (index = to_integer(unsigned(rx_bits))) then
+                    if (index = to_integer(unsigned(rx_data))) then
                         note_rdy(index) <= '1';
                     else
                         note_rdy(index) <= '0';
@@ -274,7 +266,7 @@ begin
         else
             step_out <= (others => '0');
         end if;
-    end process output_led;  
+    end process output_led;
 
     -- Uses the curr_step signal index to apply square wave of corresponding note frequency driven by Sqaure_Wave_Gen
     -- Outputs either a wave or a rest depending on the internal rest_on signal
