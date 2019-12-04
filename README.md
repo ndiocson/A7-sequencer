@@ -2,7 +2,7 @@
 
 ### Sequencer Overview
 
-A typical sequencer can be described as timeline that loops across a defined number of 'steps' that can either play a note, or a rest. Each step can play a range of notes, corresponding to a sinusoidal wave of a given frequency. When the sequencer is running, frequency values for each step can be assigned to play a tune.
+A typical sequencer can be described as timeline that loops across a defined number of 'steps' that can either play a note, or a rest. Each step can play a range of notes, corresponding to a sinusoidal wave of a given frequency.
 
 ![Sequencer Simulation for 4 steps](https://github.com/ndiocson/A7-sequencer/blob/master/pictures/Sequencer_Simulation_1.JPG)
 
