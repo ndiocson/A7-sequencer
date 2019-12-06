@@ -40,7 +40,7 @@ architecture Behavioral of UART_Rx is
 component Counter is
     Generic (
             CLK_FREQ        : positive := 1E8;      -- on-board clock frequency (default: 100 MHz)
-            MAX_COUNT       : positive := 100       -- maximum number of cycles to count to (default: 100)
+            MAX_COUNT       : integer := 100        -- maximum number of cycles to count to (default: 100)
             );
     Port ( 
             clk, reset      : in std_logic;

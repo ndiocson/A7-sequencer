@@ -29,7 +29,7 @@ architecture Test of Counter_Tb is
 component Counter is
     Generic (
             CLK_FREQ        : positive := 1E8;      -- on-board clock frequency (default: 100 MHz)
-            MAX_COUNT       : positive := 100       -- maximum number of cycles to count to (default: 100)
+            MAX_COUNT       : integer := 100        -- maximum number of cycles to count to (default: 100)
             );
     Port ( 
             clk, reset      : in std_logic;
@@ -54,7 +54,7 @@ signal max_reached      : std_logic := '0';
 begin
     
     -- Instatiates device under test
-    DUT: entity work.Counter(Behavioral)
+    DUT: Counter
         Generic Map (CLK_FREQ => CLK_FREQ, MAX_COUNT => MAX_COUNT)
         Port Map (clk => clk, reset => reset, max_reached => max_reached);
 
