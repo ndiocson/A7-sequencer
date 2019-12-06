@@ -1,23 +1,3 @@
-----------------------------------------------------------------------------------
--- Company: N/A
--- Engineer: Nick Diocson
--- 
--- Create Date: 09/25/2019 09:00:38 PM
--- Design Name: Clock Divider Testbench
--- Module Name: Clock_Divider_Tb - Test
--- Project Name: N-Step Sequencer
--- Target Devices: Arty A7-35T
--- Tool Versions: 
--- Description: 
--- 
--- Dependencies: 
--- 
--- Revision:
--- Revision 0.01 - File Created
--- Additional Comments:
--- 
-----------------------------------------------------------------------------------
-
 library IEEE;
 use IEEE.std_logic_1164.all;
 
@@ -30,7 +10,8 @@ architecture Test of Clock_Divider_Tb is
 component Clock_Divider is
     Generic (
             CLK_FREQ        : positive := 1E8;      -- on-board clock frequency (default: 100 MHz)
-            CLK_OUT_FREQ    : positive := 4         -- desired output frequency (default: 4 Hz)
+            CLK_OUT_FREQ    : positive := 4;        -- desired output frequency (default: 4 Hz)
+            DUTY_CYCLE      : real := 0.5           -- duty cycle of output clock out of 100 (default: 50%)
             );
     Port (
             clk, reset      : in std_logic;
@@ -42,22 +23,27 @@ end component Clock_Divider;
 -- CLK_FREQ:            Clock frequency
 -- CLK_OUT_FREQ:        Output frequency in Hz
 constant CLK_PERIOD     : time := 100 ns;
-constant CLK_FREQ       : positive := 1E8;
-constant CLK_OUT_FREQ   : positive := 220;
+constant CLK_FREQ       : positive := 1E7;
+constant CLK_OUT_FREQ   : positive := 4;
+
+-- dut_range:           Discrete range of DUTs to instantiate
+subtype dut_range is integer range 0 to 10;
 
 -- Input Signals
 signal clk              : std_logic := '0';
 signal reset            : std_logic := '0';
 
 -- Output Signal
-signal clk_out          : std_logic := '0';
+signal clk_out          : std_logic_vector(dut_range) := (others => '0');
 
 begin
 
-    -- Instantiates device under test
-    DUT: entity work.Clock_Divider(Behavioral)
-        Generic Map (CLK_FREQ => CLK_FREQ, CLK_OUT_FREQ => CLK_OUT_FREQ)
-        Port Map (clk => clk, reset => reset, clk_out => clk_out);
+    -- Instantiates devices under test
+    gen_dut: for index in dut_range generate
+        DUT: Clock_Divider
+            Generic Map (CLK_FREQ => CLK_FREQ, CLK_OUT_FREQ => CLK_OUT_FREQ, DUTY_CYCLE => (0.1)*index)
+            Port Map (clk => clk, reset => reset, clk_out => clk_out(index));
+    end generate gen_dut;
 
     -- Drives input clk signal
     drive_clk: process is
@@ -72,9 +58,9 @@ begin
     stimulus: process is
     begin
         
-        wait for 50 ms;
+        wait for 800 ms;
         reset <= '1';
-        wait for 10 ms;
+        wait for 200 ms;
         reset <= '0';
         
         wait;
