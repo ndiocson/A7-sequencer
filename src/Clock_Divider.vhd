@@ -5,7 +5,7 @@
 -- Create Date: 09/21/2019 09:57:56 AM
 -- Design Name: Clock Divider
 -- Module Name: Clock_Divider - Behavioral
--- Project Name: N-Step Sequencer
+-- Project Name: N-Step Sequencer Board Demo
 -- Target Devices: Arty A7-35T
 -- Tool Versions: 
 -- Description: 
@@ -25,7 +25,7 @@ entity Clock_Divider is
     Generic (
             CLK_FREQ        : positive := 1E8;      -- on-board clock frequency (default: 100 MHz)
             CLK_OUT_FREQ    : positive := 4;        -- desired output frequency (default: 4 Hz)
-            DUTY_CYCLE      : real := 0.5           -- duty cycle of output clock  (default: 50%)
+            DUTY_CYCLE      : integer := 50         -- duty cycle of output clock (default: 50%)
             );
     Port (
             clk, reset      : in std_logic;
@@ -51,81 +51,87 @@ end component Counter;
 -- MAX_COUNT_HIGH:      Number of on-board clock cycled for a high pulse
 -- MAX_COUNT_LOW:       Number of on-board clock cycles for a low pulse
 constant MAX_COUNT      : integer := integer(CLK_FREQ / CLK_OUT_FREQ);
-constant MAX_COUNT_HIGH : integer := integer(MAX_COUNT * DUTY_CYCLE);
+constant MAX_COUNT_HIGH : integer := integer((MAX_COUNT * DUTY_CYCLE) / 100);
 constant MAX_COUNT_LOW  : integer := MAX_COUNT - MAX_COUNT_HIGH;
 
--- duty_cycle_type:   
-subtype duty_cycle_type is real range 0.0 to 1.0;
+-- state:           Enumerated type to define states of simple FSM
+-- p_state:         Internal state signal used to represent the present state
+-- n_state:         Internal state signal used to represent the next state
+type state is (idle, count_low, count_high);
+signal p_state, n_state : state := idle;
 
 -- new_clk:         Internal signal used to drive clk_out
--- init_clk:        Internal signal used to initialize new_clk
-signal new_clk      : std_logic := '0';
-signal init_clk     : std_logic := '1';
-
 -- reset_high:      Internal reset signal for high pulse counter of new_clk
 -- reset_low:       Internal reset signal for low pulse counter of new_clk
--- toggle_off:     Internal signal used to toggle off new_clk
--- toggle_on:      Internal signal used to toggle on new_clk
+-- high_reached:    Internal signal used to toggle off new_clk
+-- low_reached:     Internal signal used to toggle on new_clk
+signal new_clk      : std_logic := '0';
 signal reset_high   : std_logic := '1';
 signal reset_low    : std_logic := '0';
-signal toggle_off   : std_logic := '0';
-signal toggle_on    : std_logic := '0';
-
--- isValidDutyCycle:    Function that returns true if the given duty_cycle is within the appropriate range
-function isValidDutyCycle(duty_cycle : real) return boolean is
-variable isValid    : boolean := false;
-begin
-    if (duty_cycle > duty_cycle_type'low and duty_cycle < duty_cycle_type'high) then
-        isValid := true;
-    end if;
-    return isValid;
-end function isValidDutyCycle;
+signal high_reached : std_logic := '0';
+signal low_reached  : std_logic := '0';
 
 begin
-    
+
     -- Instantiates a Counter to drive the toggle_high signal
-    count_high: Counter
+    h_counter: Counter
         Generic Map (CLK_FREQ => CLK_FREQ, MAX_COUNT => MAX_COUNT_HIGH)
-        Port Map (clk => clk, reset => reset_high, max_reached => toggle_off);
+        Port Map (clk => clk, reset => reset_high, max_reached => high_reached);
         
     -- Instantiates a Counter to drive the toggle_low signal
-    count_low: Counter
+    l_counter: Counter
         Generic Map (CLK_FREQ => CLK_FREQ, MAX_COUNT => MAX_COUNT_LOW)
-        Port Map (clk => clk, reset => reset_low, max_reached => toggle_on);        
+        Port Map (clk => clk, reset => reset_low, max_reached => low_reached);
     
     -- Drives clk_out output with internal new_clk signal
     clk_out <= new_clk;
     
-    -- Process to conntrol internal new_clk signal based on given duty cycle
-    clock_control: process(reset, toggle_off, toggle_on) is
+    -- Process that manages the present and next states
+    state_machine: process(p_state, reset, high_reached, low_reached) is
+    begin
+        case p_state is
+            
+            when idle =>
+                new_clk <= '0';
+                reset_low <= '1';
+                reset_high <= '1';
+                if (reset = '0') then
+                    n_state <= count_low;
+                else
+                    n_state <= idle;
+                end if;
+                
+            when count_low =>
+                new_clk <= '0';
+                reset_low <= '0';
+                reset_high <= '1';
+                if (low_reached = '1') then
+                    n_state <= count_high;
+                else
+                    n_state <= count_low;
+                end if;
+                
+            when count_high =>
+                new_clk <= '1';
+                reset_low <= '1';
+                reset_high <= '0';
+                if (high_reached = '1') then
+                    n_state <= count_low;
+                else
+                    n_state <= count_high;
+                end if;
+                
+        end case;
+    end process state_machine;
+    
+    -- Process that handles the memory elements for the FSM
+    memory_elem: process(clk, reset) is
     begin
         if (reset = '1') then
-            new_clk <= '0';
-            reset_high <= '1';
-            reset_low <= '1';
-            init_clk <= '1';
-        elsif (isValidDutyCycle(DUTY_CYCLE)) then
-            if (init_clk = '1') then
-                reset_low <= '0';
-                init_clk <= '0';
-            elsif (toggle_off = '1') then
-                new_clk <= '0';
-                reset_high <= '1';
-                reset_low <= '0';
-            elsif (toggle_on = '1') then
-                new_clk <= '1';
-                reset_high <= '0';
-                reset_low <= '1';
-            end if;
-        elsif (DUTY_CYCLE >= duty_cycle_type'high) then
-            new_clk <= '1';
-            reset_high <= '1';
-            reset_low <= '1';
-        else
-            new_clk <= '0';
-            reset_high <= '1';
-            reset_low <= '1';
+            p_state <= idle;
+        elsif (rising_edge(clk)) then
+            p_state <= n_state;
         end if;
-    end process clock_control;
+    end process memory_elem;
     
 end architecture Behavioral;
