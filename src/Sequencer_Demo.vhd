@@ -27,17 +27,16 @@ entity Sequencer_Demo is
             CLK_FREQ        : positive := 1E8;      -- on-board clock frequency (default: 100 MHz)
             SEQ_FREQ        : positive := 4;        -- frequency of the sequencer (default: 4 Hz)
             N_STEPS         : positive := 4;        -- number of steps in sequencer (default: 4 steps)
-            BAUD_RATE       : positive := 9600;     -- rate of transmission (default: 9600 baud)
-            FREQ_WIDTH      : positive := 32;       -- width of frequency input (default: 32 bits)
             NOTE_OUT        : positive := 440;      -- note frequency to be played (default: 440 Hz)
-            STEP_TIME       : time := 500 ms;
-            REST_TIME       : time := 500 ms
+            FREQ_WIDTH      : positive := 32;       -- width of frequency input (default: 32 bits)
+            DUTY_CYCLE      : integer := 50         -- duty cycle of internal clock (default: 50%)
             );
     Port (
             clk, reset      : in std_logic;
             strt, stop      : in std_logic;
+            note_change     : in std_logic;
             step_ready      : in std_logic_vector(N_STEPS downto 1);
-            step_out        : out std_logic_vector(N_STEPS downto 1);
+            step_led        : out std_logic_vector(N_STEPS downto 1);
             out_wave        : out std_logic
             );
 end entity Sequencer_Demo;
@@ -48,7 +47,8 @@ architecture Behavioral of Sequencer_Demo is
 component Clock_Divider is
     Generic (
             CLK_FREQ        : positive := 1E8;      -- on-board clock frequency (default: 100 MHz)
-            CLK_OUT_FREQ    : positive := 4         -- desired output frequency (default: 4 Hz)
+            CLK_OUT_FREQ    : positive := 4;        -- desired output frequency (default: 4 Hz)
+            DUTY_CYCLE      : integer := 50         -- duty cycle of output clock (default: 50%)
             );
     Port (
             clk, reset      : in std_logic;
@@ -70,10 +70,10 @@ component Square_Wave_Gen is
             );
 end component Square_Wave_Gen;
 
--- step_type:       Subtype defining the range of steps including 0
--- note_type:       Subtype defining the range of notes corresponding to each valid step
--- step_arr:        std_loigc array of length N_STPES used to represent the output wave of each step
--- freq_arr:        std_logic_vector array of length N_STEPS used to represent the frequency of each step
+-- step_type:   Subtype defining the range of steps including 0
+-- note_type:   Subtype defining the range of notes corresponding to each valid step
+-- step_arr:    std_logic array of length N_STPES used to represent the output wave of each step
+-- freq_arr:    std_logic_vector array of length N_STEPS used to represent the frequency of each step
 subtype step_type is integer range 0 to N_STEPS;
 subtype note_type is step_type range step_type'low + 1 to step_type'high;
 type step_arr is array (note_type) of std_logic;
@@ -95,16 +95,18 @@ signal rest_on      : std_logic := '1';
 -- curr_step:       Internal signal used to track current step position in sequencer
 -- step_wave:       Internal signal array of indicies representing each step wave
 -- note_freq:       Internal signal array of frequencies corresponding to each step
--- update_cnt:      
 signal curr_step    : step_type := step_type'low;
 signal step_wave    : step_arr := (others => '0');
 signal note_freq    : freq_arr := (others => std_logic_vector(to_unsigned(NOTE_OUT, 32)));
+
+-- note_toggle:     Internal signal used to track current assigned note frequency value
+signal note_toggle  : std_logic := '0';
 
 begin
     
     -- Instantiates a Clock_Divider to drive the new_clk signal
     new_clock: Clock_Divider
-        Generic Map (CLK_FREQ => CLK_FREQ, CLK_OUT_FREQ => SEQ_FREQ)
+        Generic Map (CLK_FREQ => CLK_FREQ, CLK_OUT_FREQ => SEQ_FREQ, DUTY_CYCLE => DUTY_CYCLE)
         Port Map (clk => clk, reset => reset_clk, clk_out => new_clk);
     
     -- Instatiates 'N_STEPS' Square_Wave_Gen models for each step within the sequencer
@@ -114,7 +116,7 @@ begin
             Port Map (clk => clk, reset => reset, ready => '1', freq => note_freq(index), out_wave => step_wave(index));
     end generate gen_waves;
     
-    -- Process that manages the present and next states based on internal toggle signal
+    -- Process that manages the present and next states
     state_machine: process(p_state, new_clk, strt, stop) is
     begin
         case p_state is
@@ -134,6 +136,8 @@ begin
                     n_state <= pause;
                     if (rest_on = '0') then
                         curr_step <= curr_step - 1;
+                    else
+                        null;
                     end if;
                 else
                     n_state <= play;
@@ -173,24 +177,53 @@ begin
     
     -- Toggles rest_on every clock cycle
     -- Drives rest_on to '1' when sequencer is paused
-    toggle_rest: process(new_clk, p_state) is
+    update_rest: process(new_clk, p_state) is
     begin
         if (p_state = play) then
-            if (rising_edge(new_clk)) then
-                rest_on <= not rest_on;
-            end if;
+            rest_on <= not new_clk;
         else
             rest_on <= '1';
         end if;
-    end process toggle_rest;
+    end process update_rest;
+    
+    -- Process to toggle the frequencies of steps that are switched ON
+    note_assign: process(clk, note_change) is
+    begin
+        if (rising_edge(clk)) then
+            if (note_change = '1') then
+                note_toggle <= not note_toggle;
+                for step in note_type loop
+                    if (step_ready(step) = '1') then
+                        if (note_toggle = '0') then
+                            note_freq(step) <= std_logic_vector(to_unsigned(880, 32));
+                        else
+                            note_freq(step) <= std_logic_vector(to_unsigned(440, 32));
+                        end if;
+                    else
+                        null;
+                    end if;
+                end loop;
+            end if;
+        end if;
+    end process note_assign;
     
     -- Lights the LED corresponding to the current step
     output_led: process(rest_on) is
     begin
         if (p_state = play) then
-            step_out(curr_step) <= not rest_on;
+            if (rest_on = '1') then
+                step_led <= (others => '0');
+            else
+                for step in note_type loop
+                    if (step = curr_step) then
+                        step_led(step) <= '1';
+                    else
+                        step_led(step) <= '0';
+                    end if;
+                end loop;
+            end if;
         else
-            step_out <= (others => '0');
+            step_led <= (others => '0');
         end if;
     end process output_led;
 
@@ -203,6 +236,8 @@ begin
         else
             if (step_ready(curr_step) = '1') then
                 out_wave <= step_wave(curr_step);
+            else
+                out_wave <= '0';
             end if;
         end if;
     end process output_wave;
